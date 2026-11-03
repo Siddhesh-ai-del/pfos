@@ -39,7 +39,7 @@ export default async function Home() {
       ) : context ? (
         <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-4 pb-8 pt-6 md:grid-cols-5 md:px-8">
           <div className="md:col-span-3">
-            <ChatPane greeting summary={context} />
+            <ChatPane />
           </div>
           <div className="md:col-span-2">
             <ContextRail context={context} />

@@ -21,20 +21,20 @@ const logExpenseDraft = z.object({
   source: z.enum(["chat"]).default("chat"),
   intent_acknowledged: z.boolean().optional(), // executor-side gate bypass flag (§2.5 rule 4)
   idempotency_key: MEMORY_IDEMPOTENCY.optional(), // executor assigns if absent
-});
+}).strict();
 
 const confirmTransaction = z.object({
   transaction_id: z.string().uuid(),
   idempotency_key: MEMORY_IDEMPOTENCY.optional(),
-});
+}).strict();
 
-const getFinancialContext = z.object({});
+const getFinancialContext = z.object({}).strict();
 
 const getReport = z.object({
   // 'YYYY-MM-DD' for daily, 'YYYY-MM' for monthly (executor resolves)
   period: z.string().regex(/^\d{4}-\d{2}(-\d{2})?$/, "YYYY-MM or YYYY-MM-DD"),
   type: z.enum(["daily", "monthly"]),
-});
+}).strict();
 
 const logMealConsumptionDraft = z.object({
   occurred_on: DATE_STRING,
@@ -42,12 +42,12 @@ const logMealConsumptionDraft = z.object({
   status: z.enum(["consumed", "skipped", "cancelled"]),
   note: z.string().max(120).optional(),
   idempotency_key: MEMORY_IDEMPOTENCY.optional(),
-});
+}).strict();
 
 const confirmMealConsumption = z.object({
   meal_id: z.string().uuid(),
   idempotency_key: MEMORY_IDEMPOTENCY.optional(),
-});
+}).strict();
 
 const setCommitment = z.object({
   subject: z.string().min(1).max(40),
@@ -55,14 +55,14 @@ const setCommitment = z.object({
   rule_type: z.enum(["monthly_count", "monthly_cap", "open_ended"]).default("monthly_count"),
   numeric_limit: z.number().int().min(1).optional(),
   idempotency_key: MEMORY_IDEMPOTENCY.optional(),
-});
+}).strict();
 
 const setDecision = z.object({
   text: z.string().min(3).max(200),
   linked_transaction_id: z.string().uuid().optional(),
   confidence: z.number().min(0).max(1).optional(),
   idempotency_key: MEMORY_IDEMPOTENCY.optional(),
-});
+}).strict();
 
 export const TOOL_SCHEMAS = {
   pfos_ledger_log_expense_draft: logExpenseDraft,

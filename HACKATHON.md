@@ -1,8 +1,23 @@
 # HACKATHON STATE — Personal Financial Operating System (PFOS)
 
-Status: phase-4 | build in progress (Slice 2 — agent backbone)
+Status: phase-4 | build in progress (Slice 3 — capture + headphone moment)
 
 ## Slice log (append-only)
+- [x] **Slice 2 — Agent backbone** (2026-11-03): weave loop (`lib/agent/weave.ts`,
+      §5.5, cap 3 iterations, verbatim tool-result envelopes), executor
+      (`lib/agent/executor.ts`: unknown → `tool_error`+audit(rejected),
+      bad-args zod-strict → audit(rejected), unreleased-tool slice gating,
+      sha256 idempotency keys — same (tool|args|user|request) replays collapse
+      to one audit row by design), `audit_log` writes for every path
+      (`route:'/api/agent'`), OpenRouter provider seam via plain fetch
+      (`lib/agent/llm.ts`, 503 + quiet inline message without key),
+      `POST /api/agent` route (zod-validated body), real ChatPane (bubbles,
+      ≡ Tool chips from `toolTrace`, Enter-to-send, aria-live log, quiet
+      error states). vitest 26/26 GREEN (10 new weave-executor tests with
+      scripted fake LLM against the real stack; tsc clean). SITE TODO: set
+      `OPENROUTER_API_KEY` in .env.local before demo use — accuracy of tool-
+      calling on llama-3.3-70b unverified until then (fallback env-var gpt-4o-mini ready).
+      Notes: request_id must be a uuid (audit column); no-key path verified.
 - [x] **Slice 1 — Foundation** (2026-11-03): full schema migration `0001_init.sql`
       (11 tables, RLS deny-all, 13 RPCs, §2.3 seed + reset) validated against
       postgres:17 + applied to local Supabase stack; app shell (Quiet Ledger:
