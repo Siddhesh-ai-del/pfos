@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+/* ============================================================
+   PFOS — "Quiet Ledger" design tokens (docs/design-direction.md)
+   Canonical for all Phase 4 UI code.
+   ============================================================ */
+
+:root {
+  --paper: #fbf9f4;      /* app background (warm, not clinical white) */
+  --ink: #191713;        /* primary text */
+  --ink-2: #6b655b;      /* secondary text */
+  --rule: #e5e1d8;       /* hairline borders / row rules */
+  --confirmed: #1b6e45;  /* semantic green — confirmation & remaining ONLY */
+  --over: #b3402e;       /* over-budget / cancelled semantic ONLY (never pulses) */
+  --estimate: #8a7a55;   /* pencil tone for estimated/dashed states */
+  --card: #ffffff;       /* card surfaces: flat, hairline border */
+
+  --radius-card: 10px;
+  --radius-chip: 5px;
+  --radius-button: 6px;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-rule: var(--rule);
+  --color-confirmed: var(--confirmed);
+  --color-over: var(--over);
+  --color-estimate: var(--estimate);
+  --color-card: var(--card);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+
+  --radius-card: var(--radius-card);
+  --radius-chip: var(--radius-chip);
+  --radius-button: var(--radius-button);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+/* Tabular numerals are MANDATORY wherever money or counts render. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stamp / pencil trust pair (the single signature detail). */
+.card--draft {
+  border: 1px dashed var(--estimate);
+  background: color-mix(in srgb, var(--estimate) 4%, var(--card));
+}
+.card--confirmed {
+  border: 1px solid var(--rule);
+  background: var(--card);
+}
+
+/* Soft hairline rule used under sticks and card headers. */
+.rule-t {
+  border-top: 1px solid var(--rule);
+}
+
+/* Focus: visible ink ring on light surfaces (a11y §4.7). */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Signature motion: the stamp settle (only transition with a story).
+   180ms ease-out; disabled under prefers-reduced-motion. */
+.stamp-settle {
+  transition-property: transform, border-color, background-color;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+}
+.stamp-settle:active {
+  transform: scale(0.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp-settle {
+    transition: none;
+  }
+  .stamp-settle:active {
+    transform: none;
+  }
+}
+
+/* ENTER keyboard hint on the composer — ledger voice, no decoration. */
+kbd {
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 11px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-chip);
+  padding: 1px 5px;
+  background: var(--card);
+  color: var(--ink-2);
+}

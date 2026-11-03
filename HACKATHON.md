@@ -1,6 +1,19 @@
 # HACKATHON STATE — Personal Financial Operating System (PFOS)
 
-Status: phase-4 | build in progress (Slice 1)
+Status: phase-4 | build in progress (Slice 2 — agent backbone)
+
+## Slice log (append-only)
+- [x] **Slice 1 — Foundation** (2026-11-03): full schema migration `0001_init.sql`
+      (11 tables, RLS deny-all, 13 RPCs, §2.3 seed + reset) validated against
+      postgres:17 + applied to local Supabase stack; app shell (Quiet Ledger:
+      TopBar + ContextRail + ChatPane placeholder) renders exact §2.3 rail
+      numbers; `/api/demo/reset` + `/api/fin/context` live; vitest 16/16 GREEN
+      (tool-schemas 12 + seed-contract 4); tsc clean. Notes: (a) seed fixed to
+      pre-demo tiffin 4·1·0 · billed ₹400 · balance ₹4,100 (§2.3 table had an
+      extra consumed row; line 109/rail/Beat-7 arithmetic is authoritative);
+      (b) local stack preloads `safeupdate` — every DELETE needs an explicit
+      WHERE; (c) `date_trunc('month', date)` promotes to timestamptz — cast
+      `::date` at every RPC call site.
 Deadline: none (product build at user's pace)
 Time remaining: unconstrained — pipeline pacing still enforced
 
@@ -36,9 +49,7 @@ Time remaining: unconstrained — pipeline pacing still enforced
 - [x] kickoff
 - [x] research
 - [x] ideation
-- [ ] ideation
 - [x] blueprint
-- [ ] build
 - [ ] build
 - [ ] harden
 - [ ] deploy
