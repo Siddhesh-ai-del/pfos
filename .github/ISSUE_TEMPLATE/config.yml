@@ -1,0 +1,13 @@
+# Bypass blanks: use the matched template or a discussion, not a blank issue.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Question or idea discussion
+    url: https://github.com/Siddhesh-ai-del/pfos/discussions
+    about: Open-ended questions, product thinking, and early-stage ideas.
+  - name: Security vulnerability report
+    url: https://github.com/Siddhesh-ai-del/pfos/security/advisories/new
+    about: Private report — do NOT file a public issue for security problems.
+  - name: Support
+    url: https://github.com/Siddhesh-ai-del/pfos/blob/main/SUPPORT.md
+    about: Where each kind of help lives, and current response expectations.

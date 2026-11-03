@@ -1,0 +1,57 @@
+name: Feature request
+description: This problem deserves a solution — propose it against a stated principle.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests are only actionable when anchored to a real problem.
+        Describe the frustration first; the design room can argue about
+        solutions afterward.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      description: Please confirm the following before filing.
+      options:
+        - label: I searched existing issues and discussions for this idea
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What were you trying to do with your money (or with this product) that you could not? Concrete, first-person, no solution language yet.
+      placeholder: "I wanted to ... and the system made me ..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The change you'd like to see
+      description: Your proposed solution — one paragraph is perfectly fine.
+      placeholder: "When ..., the system should ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: principle
+    attributes:
+      label: Which project principle does this advance?
+      description: PFOS is opinionated software; a feature that conflicts with every principle is usually rejected.
+      options:
+        - Honest agent (every number traces to the database, not the model)
+        - Draft-then-confirm (nothing saved without an explicit confirm)
+        - Deterministic ledger (money math lives in Postgres)
+        - India-native (INR conventions, tiffin billing, low-value daily spend)
+        - Capture speed (a recordable moment in under five seconds)
+        - None of the above (please state the principle in the problem field)
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Alternatives considered
+      placeholder: Other approaches or existing tools that fail short, and why.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context

@@ -1,4 +1,9 @@
-# HACKATHON STATE — Personal Financial Operating System (PFOS)
+# PFOS build state — current phase, slice log, decisions (append-only)
+
+Note: this file was named HACKATHON.md internally while the project was built
+inside a hackathon-pipeline harness; the harness name is not public-facing,
+so it lives here in docs/ under a descriptive name.
+
 
 Status: phase-4 | build in progress (Slice 3 — capture + headphone moment)
 

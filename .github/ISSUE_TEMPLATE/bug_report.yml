@@ -1,0 +1,81 @@
+name: Bug report
+description: Something broke — the assistant said the wrong thing, a number is off, or the UI misbehaved.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Precision beats volume: what you typed,
+        what the system answered, and the exact numbers on screen are the
+        three things that make a fix possible.
+
+        **Redaction warning:** remove any tokens, API keys, session cookies,
+        or personal financial details from screenshots and logs before
+        submitting. Environment files (`.env.local` and friends) must never
+        be attached. If a secret slipped into the report before you noticed,
+        rotate it immediately — reports are visible to maintainers the
+        moment you submit.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      description: Please confirm the following before filing.
+      options:
+        - label: I searched existing issues (open and closed) for this bug
+          required: true
+        - label: My report contains no secrets, keys, or personal data
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you said or did, what the assistant replied, and what the on-screen numbers were. Include the exact chat line if possible.
+      placeholder: |
+        I typed: "spent 120 on lunch today"
+        Assistant replied: ...
+        Budget card showed: ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+      placeholder: The draft card should have ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: The surface the bug lives on. provenance from a tool result is always in scope.
+      options:
+        - Chat / agent reply
+        - Draft card / confirm flow
+        - Context rail (budgets, tiffin, memory, month glance)
+        - Reports (daily / monthly)
+        - Demo reset / seed
+        - Docs or branding
+        - Other / not sure
+    validations:
+      required: true
+  - type: input
+    id: date-and-value
+    attributes:
+      label: Date and amount involved (if a money bug)
+      description: LLM-provenance failures count here too — if a number appeared with no tool chip behind it, that is a priority class of bug.
+      placeholder: "e.g. 2026-11-03, ₹120 food capture"
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Browser (and version), OS, and whether this happened on the public demo or a local run.
+      placeholder: |
+        - Browser: Chrome 141 / macOS 15
+        - Surface: local dev (localhost) / public demo
+  - type: markdown
+    attributes:
+      value: Additional context — logs (redacted), screenshots, or a minimal reproduction.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
