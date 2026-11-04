@@ -14,7 +14,9 @@ export default async function HomeContent() {
   try {
     context = await getFinContext();
   } catch (e) {
-    loadError = e instanceof Error ? e.message : "Unknown error";
+    // server-only log; the rendered error is a generic string (no RPC internals)
+    console.error("get_financial_context failed", e);
+    loadError = "The ledger is unreachable right now.";
   }
 
   if (loadError) {

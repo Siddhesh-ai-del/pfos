@@ -58,6 +58,8 @@ export type ExecContext = {
   requestId: string;
   toolName: string;
   rawArgs: unknown;
+  /** audit route ("/api/agent" by default; "/api/confirm" when clicked) */
+  route?: string;
 };
 
 function sha256(s: string): string {
@@ -89,11 +91,13 @@ export async function writeAudit(
     error: boolean;
     idempotency_key: string;
     request_id: string;
+    route?: string;
   }
 ): Promise<void> {
+  const { route, ...rest } = row;
   const { error } = await supabase
     .from("audit_log")
-    .insert({ ...row, route: "/api/agent" });
+    .insert({ ...rest, route: route ?? "/api/agent" });
   if (error) {
     // never fail the user turn because of the audit write; but do surface loudly in server logs
     console.error("audit_log insert failed:", error.message);
@@ -104,11 +108,12 @@ export async function executeToolCall(
   supabase: SupabaseClient,
   ctx: ExecContext
 ): Promise<ExecResult> {
-  const { toolName, rawArgs, requestId: reqId } = ctx;
+  const { toolName, rawArgs, requestId: reqId, route } = ctx;
   const model = process.env.OPENROUTER_MODEL ?? undefined;
 
   // 1) Unknown tool → tool_error + audit(rejected). No RPC ever runs.
-  if (!(toolName in TOOL_SCHEMAS)) {
+  // (Object.hasOwn — a bare `in` check would match "constructor".)
+  if (!Object.hasOwn(TOOL_SCHEMAS, toolName)) {
     await writeAudit(supabase, {
       tool_name: "unknown",
       args: { requested: toolName, args: rawArgs ?? null },
@@ -117,6 +122,7 @@ export async function executeToolCall(
       error: true,
       idempotency_key: sha256(`unknown|${toolName}|${reqId}`),
       request_id: reqId,
+      route,
     });
     return {
       toolResult: errResult("unknown_tool", {
@@ -265,6 +271,25 @@ export async function executeToolCall(
     const { data: budgets, error: budgetErr } = await supabase.rpc(
       "get_budget_status"
     );
+    // fail closed on the money guard: a failed budget lookup must never
+    // silently let a headphone-class draft through (review #6)
+    if (budgetErr) {
+      await writeAudit(supabase, {
+        tool_name: toolName,
+        args: { requested: rawArgs ?? null, gate: "budget_unavailable" },
+        model,
+        approval_state: "rejected",
+        error: true,
+        idempotency_key: sha256(`budgetunavail|${reqId}`),
+        request_id: reqId,
+        route,
+      });
+      return {
+        toolResult: errResult("budget_unavailable"),
+        approvalState: "rejected",
+        error: true,
+      };
+    }
     if (!budgetErr) {
       const d = (budgets as Array<{
         name: string;
@@ -406,11 +431,35 @@ export async function executeToolCall(
       break;
     }
     default:
-      // unreachable: RELEASED_TOOLS is kept in sync with this switch
-      rpcName = "get_financial_context";
+      // fail closed — a RELEASED_TOOLS set that drifted from this switch must
+      // never silently become a different RPC
+      rpcName = "";
   }
 
   const { data, error } = await supabase.rpc(rpcName, args);
+
+  // JSONB-level failure: RPCs signal errors in the body with
+  // {error: <code>, re_ask: true} — supabase-level success is not enough
+  // (security review #5). Never map those to success envelopes or cards.
+  if (!error && data != null && typeof data === "object" && "error" in data) {
+    const body = data as { error: string };
+    await writeAudit(supabase, {
+      tool_name: toolName,
+      args: parsed.data,
+      model,
+      result: data,
+      approval_state: "rejected",
+      error: true,
+      idempotency_key: sha256(`rpcdata-err|${toolName}|${reqId}`),
+      request_id: reqId,
+      route,
+    });
+    return {
+      toolResult: errResult(body.error),
+      approvalState: "rejected",
+      error: true,
+    };
+  }
 
   // Draft-tool envelopes carry a budget snapshot (§5.2): the assistant phrases
   // spend context from the same deterministic numbers, without a live tool.
@@ -433,9 +482,19 @@ export async function executeToolCall(
     // pass through verbatim: budgets/txns/context for the LLM + rail
     toolResult = { status: "ok", result: data };
   } else if (!error && data != null) {
+    const row = data as { id?: unknown };
+    // a write RPC that returns no row is a logic-level failure (e.g. a
+    // confirm for a gone id) — never emit a success card for it (#5).
+    if (row.id == null) {
+      return {
+        toolResult: errResult("transaction_not_found"),
+        approvalState: "rejected",
+        error: true,
+      };
+    }
     toolResult = { status: "ok", result: { row: data } };
   } else if (error) {
-    toolResult = errResult("rpc_failed", { detail: error.message.slice(0, 200) });
+    toolResult = errResult("rpc_failed");
   } else {
     toolResult = { status: "ok", result: data };
   }
@@ -531,6 +590,7 @@ export async function executeToolCall(
         .from("meal_types")
         .select("name")
         .eq("id", mealId)
+        .eq("user_id", "00000000-0000-0000-0000-000000000001")
         .maybeSingle();
       card = {
         kind: "meal_confirmed",

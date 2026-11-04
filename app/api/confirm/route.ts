@@ -3,6 +3,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { getSupabase } from "@/lib/supabase-server";
 import { executeToolCall } from "@/lib/agent/executor";
+import { demoModeEnabled } from "@/lib/demo";
 
 // POST /api/confirm — the Confirm button's write path (§5.1).
 // No-flag demo mode: entity "transaction" only; "meal" lands in Slice 5.
@@ -14,7 +15,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  if (process.env.NEXT_PUBLIC_PFOS_DEMO_MODE !== "1") {
+  if (!demoModeEnabled()) {
     return NextResponse.json({ error: "demo mode disabled" }, { status: 403 });
   }
 
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   if (parse.data.entity === "meal") {
     const supabase = getSupabase();
-    const r = await executeToolCall(supabase, {
+    const r = await executeToolCall(supabase, { route: "/api/confirm",
       requestId: randomUUID(),
       toolName: "pfos_meal_confirm_consumption",
       rawArgs: {
@@ -34,11 +35,7 @@ export async function POST(req: NextRequest) {
       },
     });
     if (r.error) {
-      console.error("meal confirm failed:", JSON.stringify(r.toolResult));
-      return NextResponse.json(
-        { error: "confirm_failed", detail: r.toolResult },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "confirm_failed" }, { status: 500 });
     }
     const envelope = r.toolResult as {
       status: string;
@@ -48,7 +45,7 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = getSupabase();
-  const r = await executeToolCall(supabase, {
+  const r = await executeToolCall(supabase, { route: "/api/confirm",
     requestId: randomUUID(),
     toolName: "pfos_ledger_confirm_transaction",
     rawArgs: {
@@ -58,11 +55,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (r.error) {
-    console.error("confirm failed:", JSON.stringify(r.toolResult));
-    return NextResponse.json(
-      { error: "confirm_failed", detail: r.toolResult },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "confirm_failed" }, { status: 500 });
   }
 
   const envelope = r.toolResult as { status: string; result: unknown };
