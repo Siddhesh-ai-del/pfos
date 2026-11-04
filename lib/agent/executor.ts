@@ -28,13 +28,23 @@ export type MemoryCard = {
   sub: string | null;
 };
 
+export type MealCard = {
+  kind: "meal_draft" | "meal_confirmed";
+  id: string; // meal_consumption.id
+  meal: string;
+  status: "consumed" | "skipped" | "cancelled";
+  occurred_on: string;
+  note: string | null;
+  record_status: "estimated" | "confirmed";
+};
+
 export type ExecResult = {
   // verbatim-from-Postgres envelope: {status:'ok', result: <jsonb>} or structured error
   toolResult: unknown;
   approvalState: "auto" | "user_confirmed" | "rejected";
   error: boolean;
   /** present when the tool created/confirmed a record — the UI renders a card */
-  card?: DraftCard | MemoryCard;
+  card?: DraftCard | MemoryCard | MealCard;
 };
 
 export type ExecContext = {
@@ -149,7 +159,43 @@ export async function executeToolCall(
     };
   }
 
-  // 3.5) Memory tools: a linked_transaction_id must reference an existing
+  // 3.5) Meal tools: resolve meal NAME → meal_types.id for the demo user.
+  //      Unknown meals are refused outright — never guess what was eaten.
+  let resolvedMealTypeId: string | null = null;
+  if (toolName === "pfos_meal_log_consumption_draft") {
+    const meal = (parsed.data as { meal: string }).meal;
+    const { data: mt } = await supabase
+      .from("meal_types")
+      .select("id, name, default_price_in_minor_paise")
+      .eq("user_id", DEMO_USER_ID)
+      .eq("name", meal)
+      .maybeSingle();
+    if (!mt) {
+      const { data: available } = await supabase
+        .from("meal_types")
+        .select("name")
+        .eq("user_id", DEMO_USER_ID);
+      await writeAudit(supabase, {
+        tool_name: toolName,
+        args: { requested: rawArgs ?? null, gate: "invalid_meal_type" },
+        model,
+        approval_state: "rejected",
+        error: true,
+        idempotency_key: sha256(`mealname|${meal}|${reqId}`),
+        request_id: reqId,
+      });
+      return {
+        toolResult: errResult("invalid_meal_type", {
+          available: (available ?? []).map((m: { name: string }) => m.name),
+        }),
+        approvalState: "rejected",
+        error: true,
+      };
+    }
+    resolvedMealTypeId = (mt as { id: string }).id;
+  }
+
+  // 3.6) Memory tools: a linked_transaction_id must reference an existing
   //      demo-user transaction — no dangling decision refs, ever.
   if (toolName === "pfos_memory_set_decision") {
     const linked = (parsed.data as { linked_transaction_id?: string })
@@ -278,6 +324,29 @@ export async function executeToolCall(
       args.p_idempotency_key = a.idempotency_key ?? idemKey;
       break;
     }
+    case "pfos_meal_log_consumption_draft": {
+      rpcName = "create_meal_consumption_draft";
+      const a = parsed.data as {
+        occurred_on: string;
+        status: string;
+        note?: string;
+        idempotency_key?: string;
+      };
+      args.p_occurred_on = a.occurred_on;
+      args.p_meal_type_id = resolvedMealTypeId; // resolved at 3.5; gates above
+      args.p_status = a.status;
+      args.p_note = a.note ?? null;
+      args.p_source = "chat";
+      args.p_idempotency_key = a.idempotency_key ?? idemKey;
+      break;
+    }
+    case "pfos_meal_confirm_consumption": {
+      rpcName = "confirm_meal_consumption";
+      const a = parsed.data as { meal_id: string; idempotency_key?: string };
+      args.p_meal_id = a.meal_id;
+      args.p_idempotency_key = a.idempotency_key ?? idemKey;
+      break;
+    }
     case "pfos_memory_set_commitment": {
       rpcName = "create_commitment";
       const a = parsed.data as {
@@ -335,7 +404,10 @@ export async function executeToolCall(
 
   const latency = Date.now() - t0;
   const approvalState: ExecResult["approvalState"] =
-    toolName === "pfos_ledger_confirm_transaction" ? "user_confirmed" : "auto";
+    toolName === "pfos_ledger_confirm_transaction" ||
+    toolName === "pfos_meal_confirm_consumption"
+      ? "user_confirmed"
+      : "auto";
 
   const resultDigest = sha256(JSON.stringify(toolResult)).slice(0, 32);
 
@@ -396,6 +468,36 @@ export async function executeToolCall(
         memoryType: "decision",
         text: a.text,
         sub: a.confidence != null ? `confidence ${a.confidence}` : null,
+      };
+    } else if (toolName === "pfos_meal_log_consumption_draft") {
+      const a = parsed.data as { meal: string; status: string };
+      card = {
+        kind: "meal_draft",
+        id: (data as { id: string }).id,
+        meal: a.meal,
+        status: a.status as "consumed" | "skipped" | "cancelled",
+        occurred_on: (data as { occurred_on: string }).occurred_on,
+        note: (data as { note: string | null }).note,
+        record_status: "estimated",
+      };
+    } else if (toolName === "pfos_meal_confirm_consumption") {
+      const mealId = (data as { meal_type_id: string }).meal_type_id;
+      const { data: mt } = await supabase
+        .from("meal_types")
+        .select("name")
+        .eq("id", mealId)
+        .maybeSingle();
+      card = {
+        kind: "meal_confirmed",
+        id: (data as { id: string }).id,
+        meal: (mt?.name as string) ?? "meal",
+        status: (data as { status: string }).status as
+          | "consumed"
+          | "skipped"
+          | "cancelled",
+        occurred_on: (data as { occurred_on: string }).occurred_on,
+        note: (data as { note: string | null }).note,
+        record_status: "confirmed",
       };
     } else if (toolName === "pfos_ledger_confirm_transaction") {
       card = {

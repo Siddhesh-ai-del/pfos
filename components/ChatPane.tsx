@@ -10,12 +10,16 @@ import {
   MemoryNoteCard,
   type MemoryNoteCardVM,
 } from "@/components/MemoryNoteCard";
+import {
+  MealDraftCard,
+  type MealCardVM,
+} from "@/components/MealDraftCard";
 
 // Chat pane (Slice 2): real conversation through POST /api/agent.
 // Draft action cards land in Slice 3; read-only context replies show a
 // collapsed "Tool" chip (plan §3 Slice 2 UI).
 
-type ChatCardVM = TransactionCardVM | MemoryNoteCardVM;
+type ChatCardVM = TransactionCardVM | MemoryNoteCardVM | MealCardVM;
 
 type ChatRow =
   | {
@@ -81,7 +85,9 @@ export function ChatPane() {
         const kind = (c as { kind?: unknown }).kind;
         return (
           typeof kind === "string" &&
-          (kind.startsWith("transaction_") || kind === "memory_note")
+          (kind.startsWith("transaction_") ||
+            kind.startsWith("meal_") ||
+            kind === "memory_note")
         );
       });
       setHistory([
@@ -113,16 +119,21 @@ export function ChatPane() {
   }
 
   function handleConfirmed(id: string) {
-    setRows((r) =>
-      r.map((row) =>
+    setRows((r): ChatRow[] =>
+      r.map((row): ChatRow =>
         row.kind === "msg" && row.cards
           ? {
               ...row,
-              cards: row.cards.map((c) =>
-                c.id === id && c.kind.startsWith("transaction_")
-                  ? { ...c, status: "confirmed" as const }
-                  : c
-              ),
+              cards: row.cards.map((c): ChatCardVM => {
+                if (c.id !== id) return c;
+                if (c.kind === "meal_draft" || c.kind === "meal_confirmed") {
+                  return { ...c, record_status: "confirmed" as const };
+                }
+                if (c.kind === "transaction_draft" || c.kind === "transaction_confirmed") {
+                  return { ...c, status: "confirmed" as const };
+                }
+                return c;
+              }),
             }
           : row
       )
@@ -155,17 +166,30 @@ export function ChatPane() {
                     }
                   >
                     {row.text}
-                    {row.cards?.map((card) =>
-                      card.kind === "memory_note" ? (
-                        <MemoryNoteCard key={card.id} card={card} />
-                      ) : (
-                        <DraftExpenseCard
-                          key={card.id}
-                          card={card}
-                          onConfirmed={handleConfirmed}
-                        />
-                      )
-                    )}
+                    {row.cards?.map((card) => {
+                      switch (card.kind) {
+                        case "transaction_draft":
+                        case "transaction_confirmed":
+                          return (
+                            <DraftExpenseCard
+                              key={card.id}
+                              card={card}
+                              onConfirmed={handleConfirmed}
+                            />
+                          );
+                        case "meal_draft":
+                        case "meal_confirmed":
+                          return (
+                            <MealDraftCard
+                              key={card.id}
+                              card={card}
+                              onConfirmed={handleConfirmed}
+                            />
+                          );
+                        case "memory_note":
+                          return <MemoryNoteCard key={card.id} card={card} />;
+                      }
+                    })}
                     {row.tools && row.tools.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {row.tools.map((t) => (

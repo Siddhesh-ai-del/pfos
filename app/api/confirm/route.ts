@@ -24,10 +24,27 @@ export async function POST(req: NextRequest) {
   }
 
   if (parse.data.entity === "meal") {
-    return NextResponse.json(
-      { error: "tool_not_released" },
-      { status: 501 } // Slice 5
-    );
+    const supabase = getSupabase();
+    const r = await executeToolCall(supabase, {
+      requestId: randomUUID(),
+      toolName: "pfos_meal_confirm_consumption",
+      rawArgs: {
+        meal_id: parse.data.id,
+        idempotency_key: parse.data.idempotency_key,
+      },
+    });
+    if (r.error) {
+      console.error("meal confirm failed:", JSON.stringify(r.toolResult));
+      return NextResponse.json(
+        { error: "confirm_failed", detail: r.toolResult },
+        { status: 500 }
+      );
+    }
+    const envelope = r.toolResult as {
+      status: string;
+      result: { row: unknown };
+    };
+    return NextResponse.json({ updated: envelope.result.row, refresh: true });
   }
 
   const supabase = getSupabase();

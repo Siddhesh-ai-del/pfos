@@ -5,9 +5,26 @@ inside a hackathon-pipeline harness; the harness name is not public-facing,
 so it lives here in docs/ under a descriptive name.
 
 
-Status: phase-4 | build in progress (Slice 5 — tiffin meter)
+Status: phase-4 | build in progress (Slice 6 — reports)
 
 ## Slice log (append-only)
+- [x] **Slice 5 — Tiffin meter ③** (2026-11-04): never-assume consumption +
+      payable math in SQL. Released `pfos_meal_log_consumption_draft` and
+      `pfos_meal_confirm_consumption`. Executor resolves meal NAME →
+      `meal_types.id` (unknown meals → `invalid_meal_type` + audit rejected,
+      never guessed — acceptance d) and embeds nothing money-ish in meal
+      cards (statuses are not billing events). Post-Beat-6+7 state returns
+      exactly `5 consumed · 2 skipped · 1 cancelled` · billed ₹500 ·
+      balance ₹4,000 · payable ₹0 (acceptance b/c, verified against
+      `get_tiffin_summary` + per-row invariant). Duplicate meal+day rows
+      collapse into the existing confirmed row via the unique guard —
+      perm-mutation test asserts each status bucket flips exactly 0↔1 on a
+      blank fixture day (2026-11-05). vitest 45/45 GREEN, re-run safe.
+      Deviations (documented): (a) chat meal cards render the status as
+      ledger text, no price; amendment of a draft happens by confirming/
+      re-drafting, not by in-card chip editing (chips are indicator-only,
+      no fake affordances); (b) meal-refill confirmation checked via RPC
+      end-to-end, not a browser E2E (Playwright replay lands in Slice 7).
 - [x] **Slice 4 — Memory ②** (2026-11-04): decisions + commitments as
       first-class records. Released `pfos_memory_set_commitment` and
       `pfos_memory_set_decision`; executor validates

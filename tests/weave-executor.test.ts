@@ -108,8 +108,8 @@ describe.skipIf(!dbUp)("executor: whitelisting enforcement", () => {
     await resetAudit();
     const r = await executeToolCall(supabase, {
       requestId: "a1e7c3f2-0000-4000-8000-000000000003",
-      toolName: "pfos_meal_log_consumption_draft", // Slice 5 tool — released later
-      rawArgs: { occurred_on: "2026-11-03", meal: "lunch", status: "consumed" },
+      toolName: "pfos_ledger_get_report", // Slice 6 tool — released later
+      rawArgs: { period: "2026-11", type: "monthly" },
     });
     expect(r.toolResult).toMatchObject({
       error: "tool_not_released",

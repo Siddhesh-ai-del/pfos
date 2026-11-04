@@ -139,6 +139,9 @@ export const RELEASED_TOOLS = new Set<ToolName>([
   // Slice 4: decisions + commitments as first-class records
   "pfos_memory_set_decision",
   "pfos_memory_set_commitment",
+  // Slice 5: tiffin meter — never-assume consumption + payable math in SQL
+  "pfos_meal_log_consumption_draft",
+  "pfos_meal_confirm_consumption",
 ]);
 
 export const RELEASED_TOOL_DEFS: ToolDef[] = TOOL_NAMES.filter((t) =>

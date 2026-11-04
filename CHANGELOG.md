@@ -11,6 +11,12 @@ Pre-release. There are no published releases yet.
 
 ### Added
 
+- Tiffin meter: `pfos_meal_log_consumption_draft` and
+  `pfos_meal_confirm_consumption` tools with meal-name → meal_types
+  resolution (unknown meals refused, never guessed), draft cards with the
+  tiffin payable invariant enforced in SQL (prepaid balance / payable_now),
+  and meal confirmation idempotency — every meal requires an explicit
+  confirm; statuses are never silently assumed.
 - Memory: `pfos_memory_set_commitment` and `pfos_memory_set_decision` tools,
   decision-to-transaction linking with ownership validation (dangling refs
   rejected), non-money writes recorded as `approval_state='auto'` with
