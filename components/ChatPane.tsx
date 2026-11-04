@@ -6,10 +6,16 @@ import {
   DraftExpenseCard,
   type TransactionCardVM,
 } from "@/components/DraftExpenseCard";
+import {
+  MemoryNoteCard,
+  type MemoryNoteCardVM,
+} from "@/components/MemoryNoteCard";
 
 // Chat pane (Slice 2): real conversation through POST /api/agent.
 // Draft action cards land in Slice 3; read-only context replies show a
 // collapsed "Tool" chip (plan §3 Slice 2 UI).
+
+type ChatCardVM = TransactionCardVM | MemoryNoteCardVM;
 
 type ChatRow =
   | {
@@ -17,7 +23,7 @@ type ChatRow =
       role: "user" | "assistant";
       text: string;
       tools?: string[];
-      cards?: TransactionCardVM[];
+      cards?: ChatCardVM[];
     }
   | { kind: "error"; text: string };
 
@@ -70,10 +76,13 @@ export function ChatPane() {
         cards?: unknown[];
       };
       const reply = body.reply ?? "I couldn't answer that. Try again?";
-      const cards = (body.cards ?? []).filter((c): c is TransactionCardVM => {
+      const cards = (body.cards ?? []).filter((c): c is ChatCardVM => {
         if (typeof c !== "object" || c === null) return false;
         const kind = (c as { kind?: unknown }).kind;
-        return typeof kind === "string" && kind.startsWith("transaction_");
+        return (
+          typeof kind === "string" &&
+          (kind.startsWith("transaction_") || kind === "memory_note")
+        );
       });
       setHistory([
         ...outgoingHistory,
@@ -110,7 +119,9 @@ export function ChatPane() {
           ? {
               ...row,
               cards: row.cards.map((c) =>
-                c.id === id ? { ...c, status: "confirmed" as const } : c
+                c.id === id && c.kind.startsWith("transaction_")
+                  ? { ...c, status: "confirmed" as const }
+                  : c
               ),
             }
           : row
@@ -144,13 +155,17 @@ export function ChatPane() {
                     }
                   >
                     {row.text}
-                    {row.cards?.map((card) => (
-                      <DraftExpenseCard
-                        key={card.id}
-                        card={card}
-                        onConfirmed={handleConfirmed}
-                      />
-                    ))}
+                    {row.cards?.map((card) =>
+                      card.kind === "memory_note" ? (
+                        <MemoryNoteCard key={card.id} card={card} />
+                      ) : (
+                        <DraftExpenseCard
+                          key={card.id}
+                          card={card}
+                          onConfirmed={handleConfirmed}
+                        />
+                      )
+                    )}
                     {row.tools && row.tools.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {row.tools.map((t) => (

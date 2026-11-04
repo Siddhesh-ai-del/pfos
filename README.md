@@ -73,7 +73,7 @@ implemented and covered by an automated test suite locally.
 | Foundation | Ledger schema, Postgres RPCs, seeded demo state, demo reset, context rail | In progress |
 | Agent backbone | Whitelisted tool schema, weave loop, executor, audit logging, chat pane | In progress |
 | Capture | Draft-then-confirm expense logging with live budget refresh, budget-overflow dialogue | In progress |
-| Memory | Decisions and commitments with linked transactions | Planned |
+| Memory | Decisions and commitments with linked transactions | In progress |
 | Tiffin meter | Meal consumption statuses and cycle payable math | Planned |
 | Reports | Deterministic daily and monthly report cards | Planned |
 | Hardening | E2E golden replay, idempotency audit, accessibility pass | Planned |

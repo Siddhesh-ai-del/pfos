@@ -136,6 +136,9 @@ export const RELEASED_TOOLS = new Set<ToolName>([
   // Slice 3: capture draft→confirm (headphone moment)
   "pfos_ledger_log_expense_draft",
   "pfos_ledger_confirm_transaction",
+  // Slice 4: decisions + commitments as first-class records
+  "pfos_memory_set_decision",
+  "pfos_memory_set_commitment",
 ]);
 
 export const RELEASED_TOOL_DEFS: ToolDef[] = TOOL_NAMES.filter((t) =>

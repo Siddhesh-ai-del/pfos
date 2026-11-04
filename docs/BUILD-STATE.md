@@ -5,9 +5,26 @@ inside a hackathon-pipeline harness; the harness name is not public-facing,
 so it lives here in docs/ under a descriptive name.
 
 
-Status: phase-4 | build in progress (Slice 4 — financial memory)
+Status: phase-4 | build in progress (Slice 5 — tiffin meter)
 
 ## Slice log (append-only)
+- [x] **Slice 4 — Memory ②** (2026-11-04): decisions + commitments as
+      first-class records. Released `pfos_memory_set_commitment` and
+      `pfos_memory_set_decision`; executor validates
+      `linked_transaction_id` ownership (rejects dangling refs with
+      `transaction_not_found` + audit `rejected`); non-money writes audit
+      `approval_state='auto'`. Weave threading: draft → iteration-2 sees
+      the row id in the tool envelope → decision links automatically
+      (Beat 3 acceptance b, verified by scripted dynamic LLM test).
+      Serialization (acceptance c): reset → Beats 1–4 → all memory rows
+      survive; no memory row ever lands inside a transaction flow.
+      Envelope contract unified: write-path tools return
+      `{status:'ok', result:{row, …}}`; context tool passes through raw.
+      Rail memory surface renders seeded decision + open commitments;
+      chat shows quiet "Decision · open" / "Commitment · open" cards.
+      vitest 37/37 GREEN. Discretion/patience note: no ReminderCard
+      added — the rail Memory card lists open commitments with rule
+      labels (avoids duplication); revisit if demo shows it's missed.
 - [x] **Slice 3 — Capture ①** (2026-11-04): the headphone moment. Released
       `pfos_ledger_log_expense_draft` + `pfos_ledger_confirm_transaction`
       (executor dispatch to `create_transaction_draft` / `confirm_transaction`

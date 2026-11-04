@@ -11,6 +11,11 @@ Pre-release. There are no published releases yet.
 
 ### Added
 
+- Memory: `pfos_memory_set_commitment` and `pfos_memory_set_decision` tools,
+  decision-to-transaction linking with ownership validation (dangling refs
+  rejected), non-money writes recorded as `approval_state='auto'` with
+  audit rows, Memory-note cards in chat, and the rail memory surface with
+  seeded decision + open commitments.
 - Capture flow: `pfos_ledger_log_expense_draft` and
   `pfos_ledger_confirm_transaction` tools (strict zod, executor dispatch),
   budget snapshot inside the draft envelope, executor-side

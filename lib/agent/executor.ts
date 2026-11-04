@@ -7,7 +7,7 @@ import { TOOL_SCHEMAS, type ToolName } from "./tools";
 import { TOOL_DEFS, RELEASED_TOOLS } from "./tool-defs";
 import { DEMO_USER_ID } from "@/lib/demo";
 
-export type DraftCard = {
+export type TransactionCard = {
   kind: "transaction_draft" | "transaction_confirmed";
   id: string; // transactions.id — the Confirm button targets this
   amount_in_minor_paise: number;
@@ -17,13 +17,24 @@ export type DraftCard = {
   status: "estimated" | "confirmed";
 };
 
+export type DraftCard = TransactionCard;
+
+export type MemoryCard = {
+  kind: "memory_note";
+  id: string;
+  memoryType: "decision" | "commitment";
+  text: string;
+  /** context line under the text (subject · rule / confidence) */
+  sub: string | null;
+};
+
 export type ExecResult = {
   // verbatim-from-Postgres envelope: {status:'ok', result: <jsonb>} or structured error
   toolResult: unknown;
   approvalState: "auto" | "user_confirmed" | "rejected";
   error: boolean;
   /** present when the tool created/confirmed a record — the UI renders a card */
-  card?: DraftCard;
+  card?: DraftCard | MemoryCard;
 };
 
 export type ExecContext = {
@@ -138,6 +149,37 @@ export async function executeToolCall(
     };
   }
 
+  // 3.5) Memory tools: a linked_transaction_id must reference an existing
+  //      demo-user transaction — no dangling decision refs, ever.
+  if (toolName === "pfos_memory_set_decision") {
+    const linked = (parsed.data as { linked_transaction_id?: string })
+      .linked_transaction_id;
+    if (linked) {
+      const { data: tx, error: linkErr } = await supabase
+        .from("transactions")
+        .select("id, amount_in_minor_paise, note, occurred_on")
+        .eq("id", linked)
+        .eq("user_id", DEMO_USER_ID)
+        .maybeSingle();
+      if (linkErr || !tx) {
+        await writeAudit(supabase, {
+          tool_name: toolName,
+          args: { requested: rawArgs ?? null, gate: "transaction_not_found" },
+          model,
+          approval_state: "rejected",
+          error: true,
+          idempotency_key: sha256(`badlink|${linked}|${reqId}`),
+          request_id: reqId,
+        });
+        return {
+          toolResult: errResult("transaction_not_found"),
+          approvalState: "rejected",
+          error: true,
+        };
+      }
+    }
+  }
+
   // 4) Execute the matching RPC (or the executor-side overflow gate, §5.5
   //    step 5, which may intercept a discretionary draft BEFORE any write).
   // ---- executor-side overflow gate: headphone-class discretionary drafts ----
@@ -236,6 +278,36 @@ export async function executeToolCall(
       args.p_idempotency_key = a.idempotency_key ?? idemKey;
       break;
     }
+    case "pfos_memory_set_commitment": {
+      rpcName = "create_commitment";
+      const a = parsed.data as {
+        subject: string;
+        text: string;
+        rule_type: string;
+        numeric_limit?: number;
+        idempotency_key?: string;
+      };
+      args.p_subject = a.subject;
+      args.p_text = a.text;
+      args.p_rule_type = a.rule_type;
+      args.p_numeric_limit = a.numeric_limit ?? null;
+      args.p_idempotency_key = a.idempotency_key ?? idemKey;
+      break;
+    }
+    case "pfos_memory_set_decision": {
+      rpcName = "create_decision";
+      const a = parsed.data as {
+        text: string;
+        linked_transaction_id?: string;
+        confidence?: number;
+        idempotency_key?: string;
+      };
+      args.p_text = a.text;
+      args.p_linked_transaction_id = a.linked_transaction_id ?? null;
+      args.p_confidence = a.confidence ?? 0.8;
+      args.p_idempotency_key = a.idempotency_key ?? idemKey;
+      break;
+    }
     default:
       // unreachable: RELEASED_TOOLS is kept in sync with this switch
       rpcName = "get_financial_context";
@@ -245,11 +317,15 @@ export async function executeToolCall(
 
   // Draft-tool envelopes carry a budget snapshot (§5.2): the assistant phrases
   // spend context from the same deterministic numbers, without a live tool.
+  // All write-path envelopes use the same {status:'ok', result:{row,...}} shape.
   let toolResult: unknown;
   if (!error && toolName === "pfos_ledger_log_expense_draft" && data != null) {
     const { data: budgets } = await supabase.rpc("get_budget_status");
     toolResult = { status: "ok", result: { row: data, budget_snapshot: budgets } };
-  } else if (!error && toolName === "pfos_ledger_confirm_transaction" && data != null) {
+  } else if (!error && toolName === "pfos_ledger_get_financial_context") {
+    // pass through verbatim: budgets/txns/context for the LLM + rail
+    toolResult = { status: "ok", result: data };
+  } else if (!error && data != null) {
     toolResult = { status: "ok", result: { row: data } };
   } else if (error) {
     toolResult = errResult("rpc_failed", { detail: error.message.slice(0, 200) });
@@ -296,6 +372,30 @@ export async function executeToolCall(
         occurred_on: row.occurred_on,
         note: row.note,
         status: "estimated",
+      };
+    } else if (toolName === "pfos_memory_set_commitment") {
+      const a = parsed.data as {
+        subject: string;
+        text: string;
+        rule_type: string;
+        numeric_limit?: number;
+      };
+      const r = data as { subject: string };
+      card = {
+        kind: "memory_note",
+        id: (data as { id: string }).id,
+        memoryType: "commitment",
+        text: a.text,
+        sub: `${r.subject} · ${a.rule_type === "open_ended" ? "open" : "≤" + (a.numeric_limit ?? "?") + "/mo"}`,
+      };
+    } else if (toolName === "pfos_memory_set_decision") {
+      const a = parsed.data as { text: string; confidence?: number };
+      card = {
+        kind: "memory_note",
+        id: (data as { id: string }).id,
+        memoryType: "decision",
+        text: a.text,
+        sub: a.confidence != null ? `confidence ${a.confidence}` : null,
       };
     } else if (toolName === "pfos_ledger_confirm_transaction") {
       card = {
