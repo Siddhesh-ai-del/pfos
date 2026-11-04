@@ -235,11 +235,21 @@ export async function executeToolCall(
 
   // 4) Execute the matching RPC (or the executor-side overflow gate, §5.5
   //    step 5, which may intercept a discretionary draft BEFORE any write).
-  // ---- executor-side overflow gate: headphone-class discretionary drafts ----
-  const t0 = Date.now();
-  const idemKey = sha256(
-    `${toolName}|${canonicalJson(parsed.data)}|${DEMO_USER_ID}|${reqId}`
+  // Confirm-tool keys exclude requestId: same user clicking Confirm twice is
+  // ONE logical Confirm — audit collapses to a single row (§ Slice 7c).
+  const argsForKey = Object.fromEntries(
+    Object.entries(parsed.data as Record<string, unknown>)
   );
+  delete argsForKey.idempotency_key;
+  const keysOnIntent =
+    toolName === "pfos_ledger_confirm_transaction" ||
+    toolName === "pfos_meal_confirm_consumption";
+  const idemKey = sha256(
+    keysOnIntent
+      ? `${toolName}|${canonicalJson(argsForKey)}|${DEMO_USER_ID}`
+      : `${toolName}|${canonicalJson(parsed.data)}|${DEMO_USER_ID}|${reqId}`
+  );
+  const t0 = Date.now();
 
   const draftArgs = parsed.data as {
     category: string;

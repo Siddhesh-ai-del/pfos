@@ -61,10 +61,8 @@ The full evidence trail, with verified sources, lives in
 ## Project status
 
 PFOS is in active pre-release development. There are no releases, no public
-deployment, and no installable artifact yet. The foundation (schema, seeded
-demo state, demo reset, context rail) and the agent backbone (whitelisted
-tool-calling weave loop, executor, audit logging, chat interface) are
-implemented and covered by an automated test suite locally.
+deployment, and no installable artifact yet. Every build slice through the
+hardening pass is implemented and covered by the local test suite (61 tests).
 
 ### Roadmap
 
@@ -76,7 +74,7 @@ implemented and covered by an automated test suite locally.
 | Memory | Decisions and commitments with linked transactions | In progress |
 | Tiffin meter | Meal consumption statuses and cycle payable math | In progress |
 | Reports | Deterministic daily and monthly report cards | In progress |
-| Hardening | E2E golden replay, idempotency audit, accessibility pass | Planned |
+| Hardening | E2E golden replay, idempotency audit, accessibility pass | In progress |
 | Public deployment | Hosted demo with seeded state and reset | Planned |
 
 ## Installation
@@ -101,10 +99,11 @@ than duplicate.
 ```
 pfos/
 ├── app/          # Next.js App Router pages and API routes
-├── components/   # UI components (chat pane, context rail, top bar)
+├── components/   # UI components (chat pane, context rail, report cards)
 ├── lib/          # demo constants, Supabase client, agent tool whitelist and weave loop
 ├── supabase/     # schema migrations: ledger tables, RPCs, demo seed and reset
-├── tests/        # vitest suites: tool schemas, seed contract, weave and executor
+├── tests/        # vitest suites: tool schemas, seed contract, weave/executor/audit
+├── e2e/          # Playwright golden replay (ambient checks run; LLM beats need OPENROUTER_API_KEY)
 ├── docs/         # blueprint, design direction, research brief, build state
 └── .github/      # contribution, security, issue and PR templates
 ```

@@ -15,7 +15,7 @@ export default function Home() {
             className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 pb-8 pt-6 md:px-8"
           >
             <div className="flex items-center justify-between border-b border-rule pb-4">
-              <span className="font-display text-[18px] font-semibold">PFOS</span>
+              <div className="h-6 w-16 animate-pulse rounded bg-rule/60" />
               <div className="h-4 w-24 animate-pulse rounded bg-rule/60" />
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-5">

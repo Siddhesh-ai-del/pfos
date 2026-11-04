@@ -5,9 +5,25 @@ inside a hackathon-pipeline harness; the harness name is not public-facing,
 so it lives here in docs/ under a descriptive name.
 
 
-Status: phase-4 | build in progress (Slice 7 — hardening)
+Status: phase-5 | harden (build complete — feature freeze)
 
 ## Slice log (append-only)
+- [x] **Slice 7 — Hardening** (2026-11-04): audit double-click collapse
+      (confirm tools key on intent, not requestId → exactly ONE audit row
+      per logical Confirm, test-verified via fresh-requestId triple clicks);
+      ₹ format regressions pinned (Indian grouping incl. 999,99,99,999 —
+      `formatINR` unit suite); §2.5 prompt digest extended with the
+      everyday-phrasing + ₹-less amount + never-estimate rules (guard tests
+      assert the load-bearing phrases); Playwright golden replay scaffold
+      (`e2e/golden.spec.ts`, `playwright.config.ts`) — runnable ambient
+      Beat-0 checks pass 3/3 consecutively; Beats 1–9 LLM replay is gated
+      on OPENROUTER_API_KEY (skips explicitly, never silently); Lighthouse
+      production build on `/` = **90** (target ≥ 85); `next build` green
+      (Next 16 Cache Components: `/` = partial prerender, Suspense-streamed
+      data, zero console errors). Feature freeze declared — remaining plan
+      gaps: full §2.6 keyboard-only walkthrough + LLM fidelity check, both
+      blocked on the user's OPENROUTER_API_KEY.
+- [x] **Slice 8 — Yearly trends** — SKIPPED (cut target, per plan §3)
 - [x] **Slice 6 — Reports ④** (2026-11-04): deterministic report cards.
       Released `pfos_ledger_get_report` (executor: daily→get_day_summary(p_day),
       monthly→get_month_summary(date_trunc)). Envelopes carry verbatim RPC
@@ -139,7 +155,7 @@ Time remaining: unconstrained — pipeline pacing still enforced
 - [x] research
 - [x] ideation
 - [x] blueprint
-- [ ] build
+- [x] build
 - [ ] harden
 - [ ] deploy
 - [ ] win-package

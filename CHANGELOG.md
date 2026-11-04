@@ -11,6 +11,11 @@ Pre-release. There are no published releases yet.
 
 ### Added
 
+- Hardening: confirm-tool idempotency collapse in the audit log (one
+  logical Confirm = one row across double-clicks), Indian-grouping ₹
+  regression suite, Playwright golden replay (ambient Beat-0 checks green),
+  ₹-less amount and Hinglish phrasing rules in the system prompt.
+
 - Reports: `pfos_ledger_get_report` tool (daily ₹3,120 = Food ₹120 +
   Discretionary ₹3,000 · monthly ₹4,565 = 45% of October ₹10,200),
   verbatim RPC payloads rendered by plain HTML report cards (no LLM math,
