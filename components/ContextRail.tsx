@@ -1,4 +1,4 @@
-import type { FinContext } from "@/app/page";
+import type { FinContext } from "@/components/HomeContent";
 import { formatINR } from "@/lib/demo";
 import dayjs from "dayjs";
 

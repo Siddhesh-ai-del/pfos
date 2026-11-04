@@ -14,12 +14,21 @@ import {
   MealDraftCard,
   type MealCardVM,
 } from "@/components/MealDraftCard";
+import {
+  ReportCardDaily,
+  ReportCardMonthly,
+  type ReportCardVM,
+} from "@/components/ReportCards";
 
 // Chat pane (Slice 2): real conversation through POST /api/agent.
 // Draft action cards land in Slice 3; read-only context replies show a
 // collapsed "Tool" chip (plan §3 Slice 2 UI).
 
-type ChatCardVM = TransactionCardVM | MemoryNoteCardVM | MealCardVM;
+type ChatCardVM =
+  | TransactionCardVM
+  | MemoryNoteCardVM
+  | MealCardVM
+  | ReportCardVM;
 
 type ChatRow =
   | {
@@ -87,6 +96,7 @@ export function ChatPane() {
           typeof kind === "string" &&
           (kind.startsWith("transaction_") ||
             kind.startsWith("meal_") ||
+            kind.startsWith("report_") ||
             kind === "memory_note")
         );
       });
@@ -125,7 +135,7 @@ export function ChatPane() {
           ? {
               ...row,
               cards: row.cards.map((c): ChatCardVM => {
-                if (c.id !== id) return c;
+                if (!("id" in c) || c.id !== id) return c;
                 if (c.kind === "meal_draft" || c.kind === "meal_confirmed") {
                   return { ...c, record_status: "confirmed" as const };
                 }
@@ -188,6 +198,10 @@ export function ChatPane() {
                           );
                         case "memory_note":
                           return <MemoryNoteCard key={card.id} card={card} />;
+                        case "report_daily":
+                          return <ReportCardDaily key={card.period} card={card} />;
+                        case "report_monthly":
+                          return <ReportCardMonthly key={card.period} card={card} />;
                       }
                     })}
                     {row.tools && row.tools.length > 0 && (

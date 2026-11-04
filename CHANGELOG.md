@@ -11,6 +11,11 @@ Pre-release. There are no published releases yet.
 
 ### Added
 
+- Reports: `pfos_ledger_get_report` tool (daily ₹3,120 = Food ₹120 +
+  Discretionary ₹3,000 · monthly ₹4,565 = 45% of October ₹10,200),
+  verbatim RPC payloads rendered by plain HTML report cards (no LLM math,
+  no chart libraries), budget-violation line, recurring candidates,
+  empty-month rendering.
 - Tiffin meter: `pfos_meal_log_consumption_draft` and
   `pfos_meal_confirm_consumption` tools with meal-name → meal_types
   resolution (unknown meals refused, never guessed), draft cards with the

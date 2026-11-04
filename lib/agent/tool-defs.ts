@@ -142,6 +142,8 @@ export const RELEASED_TOOLS = new Set<ToolName>([
   // Slice 5: tiffin meter — never-assume consumption + payable math in SQL
   "pfos_meal_log_consumption_draft",
   "pfos_meal_confirm_consumption",
+  // Slice 6: deterministic reports
+  "pfos_ledger_get_report",
 ]);
 
 export const RELEASED_TOOL_DEFS: ToolDef[] = TOOL_NAMES.filter((t) =>

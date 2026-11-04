@@ -5,9 +5,24 @@ inside a hackathon-pipeline harness; the harness name is not public-facing,
 so it lives here in docs/ under a descriptive name.
 
 
-Status: phase-4 | build in progress (Slice 6 — reports)
+Status: phase-4 | build in progress (Slice 7 — hardening)
 
 ## Slice log (append-only)
+- [x] **Slice 6 — Reports ④** (2026-11-04): deterministic report cards.
+      Released `pfos_ledger_get_report` (executor: daily→get_day_summary(p_day),
+      monthly→get_month_summary(date_trunc)). Envelopes carry verbatim RPC
+      jsonb (`{status:'ok', result:{row, period, type}}`); the LLM never
+      formats a number, and the cards never see model tokens. Report cards
+      render plain HTML/CSS proportion bars (no charting lib); sabotage
+      test asserts "9999" cannot round-trip into the card payload while
+      ₹4,565 (the §2.7 figure) does. Round-off invariant verified
+      (sum(by_category) == month expenses); empty-month snapshot renders
+      zeros and no violations; Beat-8 arithmetic exact (₹3,120 = 120 +
+      3,000; Discretionary over by ₹2,500). Framework note: Next 16 Cache
+      Components — the static route shell may not touch the clock; the
+      Postgres read now streams behind Suspense and TopBar is inside the
+      data-driven tree (month label comes from the ledger day). Console
+      is error-free. vitest 50/50 GREEN.
 - [x] **Slice 5 — Tiffin meter ③** (2026-11-04): never-assume consumption +
       payable math in SQL. Released `pfos_meal_log_consumption_draft` and
       `pfos_meal_confirm_consumption`. Executor resolves meal NAME →

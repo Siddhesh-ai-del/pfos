@@ -28,6 +28,13 @@ export type MemoryCard = {
   sub: string | null;
 };
 
+export type ReportCard = {
+  kind: "report_daily" | "report_monthly";
+  period: string;
+  /** verbatim get_day_summary / get_month_summary output — never LLM-touched */
+  report: unknown;
+};
+
 export type MealCard = {
   kind: "meal_draft" | "meal_confirmed";
   id: string; // meal_consumption.id
@@ -44,7 +51,7 @@ export type ExecResult = {
   approvalState: "auto" | "user_confirmed" | "rejected";
   error: boolean;
   /** present when the tool created/confirmed a record — the UI renders a card */
-  card?: DraftCard | MemoryCard | MealCard;
+  card?: DraftCard | MemoryCard | MealCard | ReportCard;
 };
 
 export type ExecContext = {
@@ -297,6 +304,17 @@ export async function executeToolCall(
     case "pfos_ledger_get_financial_context":
       rpcName = "get_financial_context";
       break;
+    case "pfos_ledger_get_report": {
+      const a = parsed.data as { period: string; type: "daily" | "monthly" };
+      if (a.type === "daily") {
+        rpcName = "get_day_summary";
+        args.p_day = a.period; // YYYY-MM-DD → Postgres date
+      } else {
+        rpcName = "get_month_summary";
+        args.p_month = `${a.period}-01`; // YYYY-MM → first of month
+      }
+      break;
+    }
     case "pfos_ledger_log_expense_draft": {
       rpcName = "create_transaction_draft";
       const a = parsed.data as {
@@ -391,6 +409,16 @@ export async function executeToolCall(
   if (!error && toolName === "pfos_ledger_log_expense_draft" && data != null) {
     const { data: budgets } = await supabase.rpc("get_budget_status");
     toolResult = { status: "ok", result: { row: data, budget_snapshot: budgets } };
+  } else if (
+    !error &&
+    toolName === "pfos_ledger_get_report" &&
+    data != null
+  ) {
+    const a = parsed.data as { period: string; type: "daily" | "monthly" };
+    toolResult = {
+      status: "ok",
+      result: { row: data, period: a.period, type: a.type },
+    };
   } else if (!error && toolName === "pfos_ledger_get_financial_context") {
     // pass through verbatim: budgets/txns/context for the LLM + rail
     toolResult = { status: "ok", result: data };
@@ -468,6 +496,13 @@ export async function executeToolCall(
         memoryType: "decision",
         text: a.text,
         sub: a.confidence != null ? `confidence ${a.confidence}` : null,
+      };
+    } else if (toolName === "pfos_ledger_get_report") {
+      const a = parsed.data as { period: string; type: "daily" | "monthly" };
+      card = {
+        kind: a.type === "daily" ? "report_daily" : "report_monthly",
+        period: a.period,
+        report: data,
       };
     } else if (toolName === "pfos_meal_log_consumption_draft") {
       const a = parsed.data as { meal: string; status: string };

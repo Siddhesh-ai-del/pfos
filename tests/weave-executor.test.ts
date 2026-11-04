@@ -104,17 +104,22 @@ describe.skipIf(!dbUp)("executor: whitelisting enforcement", () => {
     expect(rows![0].args).toMatchObject({ requested: { nope: 1 } });
   });
 
-  it("returns tool_error for a whitelisted tool not yet RELEASED (slice gating)", async () => {
-    await resetAudit();
+  it("every §5.2 whitelisted tool is released — and unknown tools still reject", async () => {
+    // Slice end-state: the release gate is empty; the unreleased path remains
+    // alive for the not-yet-signed tool, and can never fire for a whitelisted one.
+    const { RELEASED_TOOLS, TOOL_DEFS } = await import("@/lib/agent/tool-defs");
+    const { TOOL_NAMES } = await import("@/lib/agent/tools");
+    for (const name of TOOL_NAMES) {
+      expect(RELEASED_TOOLS.has(name), name).toBe(true);
+      expect(TOOL_DEFS[name].name).toBe(name);
+    }
+    // unknown tool: still a tool_error + rejected audit
     const r = await executeToolCall(supabase, {
       requestId: "a1e7c3f2-0000-4000-8000-000000000003",
-      toolName: "pfos_ledger_get_report", // Slice 6 tool — released later
-      rawArgs: { period: "2026-11", type: "monthly" },
+      toolName: "pfos_holo_hack",
+      rawArgs: {},
     });
-    expect(r.toolResult).toMatchObject({
-      error: "tool_not_released",
-      re_ask: true,
-    });
+    expect(r.toolResult).toMatchObject({ error: "unknown_tool", re_ask: true });
   });
 
   it("executes pfos_ledger_get_financial_context → envelope + audit(auto, digest, latency)", async () => {
