@@ -44,6 +44,7 @@ export async function runWeave(
   let messages = toLlmMessages(input.messages);
   let anyToolExecuted = false;
   const toolTrace: string[] = [];
+  const toolCards: unknown[] = [];
 
   try {
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
@@ -56,7 +57,7 @@ export async function runWeave(
         const text = response.text?.trim() || BAIL_LINE;
         return {
           reply: text,
-          cards: [],
+          cards: toolCards,
           refresh: anyToolExecuted,
           httpStatus: 200,
           toolTrace,
@@ -78,6 +79,7 @@ export async function runWeave(
         toolName: call.name,
         rawArgs: parsedArgs,
       });
+      if (exec.card) toolCards.push(exec.card);
 
       // extra tool calls in one response are refused (one per iteration)
       for (const extra of toolCalls.slice(1)) {
@@ -127,7 +129,7 @@ export async function runWeave(
     return {
       reply:
         "I couldn't reach the ledger brain just now. Try again in a moment.",
-      cards: [],
+      cards: toolCards,
       refresh: false,
       httpStatus: 502,
       toolTrace,
@@ -135,5 +137,5 @@ export async function runWeave(
   }
 
   // 4) Tool-loop cap reached → bail politely. NEVER guess numbers.
-  return { reply: BAIL_LINE, cards: [], refresh: anyToolExecuted, httpStatus: 200, toolTrace };
+  return { reply: BAIL_LINE, cards: toolCards, refresh: anyToolExecuted, httpStatus: 200, toolTrace };
 }

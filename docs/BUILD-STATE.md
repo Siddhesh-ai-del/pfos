@@ -5,9 +5,29 @@ inside a hackathon-pipeline harness; the harness name is not public-facing,
 so it lives here in docs/ under a descriptive name.
 
 
-Status: phase-4 | build in progress (Slice 3 — capture + headphone moment)
+Status: phase-4 | build in progress (Slice 4 — financial memory)
 
 ## Slice log (append-only)
+- [x] **Slice 3 — Capture ①** (2026-11-04): the headphone moment. Released
+      `pfos_ledger_log_expense_draft` + `pfos_ledger_confirm_transaction`
+      (executor dispatch to `create_transaction_draft` / `confirm_transaction`
+      RPCs; verbatim Postgres rows; draft envelope carries the budget
+      snapshot — get_budget_status is not a live tool). Executor-side
+      overflow gate intercepts discretionary drafts > ½ remaining budget
+      unless `intent_acknowledged` (returns `intent_required` + audit
+      `approval_state=rejected`, **zero rows written**). Confirm idempotent
+      by RPC (re-click = no-op, returns confirmed row). UI: Draft card
+      (pencil-dash → stamped "Confirmed", Quiet Ledger signature), ≡ Tool
+      chips, rail refreshes via `router.refresh()` after confirm. vitest
+      32/32 GREEN incl. Beat-1/2/3 trace, Confirm double-click, re-run-safe
+      suites. Notes: (a) vitest file parallelism disabled — the local stack
+      is shared mutable state and files must run in order; (b) tool
+      envelopes are wrapped `{status:'ok', result:{row, ...}}` uniformly;
+      (c) audit `args` for gate rejections stores `{requested, gate}` —
+      the weave test asserts the intercept shows up as rejected audit, no
+      draft row. Beat 0 state restored via demo reset before push.
+      TODO for release demo: set OPENROUTER_API_KEY (tool-calling fidelity
+      unverified live).
 - [x] **Slice 2 — Agent backbone** (2026-11-03): weave loop (`lib/agent/weave.ts`,
       §5.5, cap 3 iterations, verbatim tool-result envelopes), executor
       (`lib/agent/executor.ts`: unknown → `tool_error`+audit(rejected),

@@ -7,11 +7,23 @@ import { TOOL_SCHEMAS, type ToolName } from "./tools";
 import { TOOL_DEFS, RELEASED_TOOLS } from "./tool-defs";
 import { DEMO_USER_ID } from "@/lib/demo";
 
+export type DraftCard = {
+  kind: "transaction_draft" | "transaction_confirmed";
+  id: string; // transactions.id — the Confirm button targets this
+  amount_in_minor_paise: number;
+  category: string | null;
+  occurred_on: string; // YYYY-MM-DD
+  note: string | null;
+  status: "estimated" | "confirmed";
+};
+
 export type ExecResult = {
   // verbatim-from-Postgres envelope: {status:'ok', result: <jsonb>} or structured error
   toolResult: unknown;
   approvalState: "auto" | "user_confirmed" | "rejected";
   error: boolean;
+  /** present when the tool created/confirmed a record — the UI renders a card */
+  card?: DraftCard;
 };
 
 export type ExecContext = {
@@ -126,11 +138,70 @@ export async function executeToolCall(
     };
   }
 
-  // 4) Execute the matching RPC. ctx.requestId feeds the idempotency key.
+  // 4) Execute the matching RPC (or the executor-side overflow gate, §5.5
+  //    step 5, which may intercept a discretionary draft BEFORE any write).
+  // ---- executor-side overflow gate: headphone-class discretionary drafts ----
+  const t0 = Date.now();
   const idemKey = sha256(
     `${toolName}|${canonicalJson(parsed.data)}|${DEMO_USER_ID}|${reqId}`
   );
-  const t0 = Date.now();
+
+  const draftArgs = parsed.data as {
+    category: string;
+    amount_in_minor_paise: number;
+    intent_acknowledged?: boolean | undefined;
+  };
+
+  if (
+    toolName === "pfos_ledger_log_expense_draft" &&
+    draftArgs.category === "discretionary" &&
+    draftArgs.intent_acknowledged !== true
+  ) {
+    const { data: budgets, error: budgetErr } = await supabase.rpc(
+      "get_budget_status"
+    );
+    if (!budgetErr) {
+      const d = (budgets as Array<{
+        name: string;
+        budget: number | null;
+        remaining_or_over: number | null;
+      }>).find((b) => b.name === "discretionary");
+      const remaining = d?.remaining_or_over;
+      if (
+        d?.budget != null &&
+        remaining != null &&
+        draftArgs.amount_in_minor_paise > remaining / 2
+      ) {
+        const gateResult = {
+          status: "intent_required",
+          display: {
+            category: draftArgs.category,
+            budget: d.budget,
+            remaining,
+            overflow: draftArgs.amount_in_minor_paise - remaining,
+          },
+          question: "Record as a planned purchase?",
+        };
+        await writeAudit(supabase, {
+          tool_name: toolName,
+          args: { requested: rawArgs ?? null, gate: "intent_required" },
+          model,
+          result: gateResult,
+          approval_state: "rejected",
+          latency_ms: Date.now() - t0,
+          error: true,
+          idempotency_key: idemKey,
+          request_id: reqId,
+        });
+        return {
+          toolResult: gateResult,
+          approvalState: "rejected",
+          error: true,
+        };
+      }
+    }
+  }
+
   let rpcName: string;
   const args: Record<string, unknown> = {};
 
@@ -138,17 +209,57 @@ export async function executeToolCall(
     case "pfos_ledger_get_financial_context":
       rpcName = "get_financial_context";
       break;
+    case "pfos_ledger_log_expense_draft": {
+      rpcName = "create_transaction_draft";
+      const a = parsed.data as {
+        kind: string;
+        category: string;
+        amount_in_minor_paise: number;
+        occurred_on: string;
+        note?: string;
+        idempotency_key?: string;
+      };
+      args.p_kind = a.kind;
+      args.p_category_name = a.category;
+      args.p_amount_in_minor_paise = a.amount_in_minor_paise;
+      args.p_occurred_on = a.occurred_on;
+      args.p_note = a.note ?? null;
+      args.p_source = "chat";
+      // arg-level idempotency: model-supplied key or the computed one
+      args.p_idempotency_key = a.idempotency_key ?? idemKey;
+      break;
+    }
+    case "pfos_ledger_confirm_transaction": {
+      rpcName = "confirm_transaction";
+      const a = parsed.data as { transaction_id: string; idempotency_key?: string };
+      args.p_transaction_id = a.transaction_id;
+      args.p_idempotency_key = a.idempotency_key ?? idemKey;
+      break;
+    }
     default:
-      // unreachable while RELEASED_TOOLS only contains the above
+      // unreachable: RELEASED_TOOLS is kept in sync with this switch
       rpcName = "get_financial_context";
   }
 
   const { data, error } = await supabase.rpc(rpcName, args);
-  const latency = Date.now() - t0;
 
-  const toolResult = error
-    ? errResult("rpc_failed", { detail: error.message.slice(0, 200) })
-    : { status: "ok", result: data };
+  // Draft-tool envelopes carry a budget snapshot (§5.2): the assistant phrases
+  // spend context from the same deterministic numbers, without a live tool.
+  let toolResult: unknown;
+  if (!error && toolName === "pfos_ledger_log_expense_draft" && data != null) {
+    const { data: budgets } = await supabase.rpc("get_budget_status");
+    toolResult = { status: "ok", result: { row: data, budget_snapshot: budgets } };
+  } else if (!error && toolName === "pfos_ledger_confirm_transaction" && data != null) {
+    toolResult = { status: "ok", result: { row: data } };
+  } else if (error) {
+    toolResult = errResult("rpc_failed", { detail: error.message.slice(0, 200) });
+  } else {
+    toolResult = { status: "ok", result: data };
+  }
+
+  const latency = Date.now() - t0;
+  const approvalState: ExecResult["approvalState"] =
+    toolName === "pfos_ledger_confirm_transaction" ? "user_confirmed" : "auto";
 
   const resultDigest = sha256(JSON.stringify(toolResult)).slice(0, 32);
 
@@ -158,16 +269,51 @@ export async function executeToolCall(
     model,
     result_digest: resultDigest,
     result: toolResult,
-    approval_state: "auto",
+    approval_state: approvalState,
     latency_ms: latency,
     error: Boolean(error),
     idempotency_key: idemKey,
     request_id: reqId,
   });
 
+  // Draft/confirm envelopes also surface a UI card descriptor for the chat pane.
+  let card: ExecResult["card"] | undefined;
+  if (!error && data != null) {
+    const row = data as {
+      id: string;
+      amount_in_minor_paise: number;
+      occurred_on: string;
+      note: string | null;
+      status: string;
+    };
+    if (toolName === "pfos_ledger_log_expense_draft") {
+      const a = parsed.data as { category: string };
+      card = {
+        kind: "transaction_draft",
+        id: row.id,
+        amount_in_minor_paise: row.amount_in_minor_paise,
+        category: a.category,
+        occurred_on: row.occurred_on,
+        note: row.note,
+        status: "estimated",
+      };
+    } else if (toolName === "pfos_ledger_confirm_transaction") {
+      card = {
+        kind: "transaction_confirmed",
+        id: row.id,
+        amount_in_minor_paise: row.amount_in_minor_paise,
+        category: null,
+        occurred_on: row.occurred_on,
+        note: row.note,
+        status: "confirmed",
+      };
+    }
+  }
+
   return {
     toolResult,
-    approvalState: "auto",
+    approvalState,
     error: Boolean(error),
+    card,
   };
 }

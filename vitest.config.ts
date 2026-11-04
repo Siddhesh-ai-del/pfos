@@ -15,5 +15,7 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     testTimeout: 15000,
     hookTimeout: 15000,
+    // the local Supabase stack is shared mutable state — files must run in order
+    fileParallelism: false,
   },
 });

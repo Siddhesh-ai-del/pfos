@@ -2,13 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DraftExpenseCard,
+  type TransactionCardVM,
+} from "@/components/DraftExpenseCard";
 
 // Chat pane (Slice 2): real conversation through POST /api/agent.
 // Draft action cards land in Slice 3; read-only context replies show a
 // collapsed "Tool" chip (plan §3 Slice 2 UI).
 
 type ChatRow =
-  | { kind: "msg"; role: "user" | "assistant"; text: string; tools?: string[] }
+  | {
+      kind: "msg";
+      role: "user" | "assistant";
+      text: string;
+      tools?: string[];
+      cards?: TransactionCardVM[];
+    }
   | { kind: "error"; text: string };
 
 const GREETING: ChatRow = {
@@ -57,8 +67,14 @@ export function ChatPane() {
         reply?: string;
         refresh?: boolean;
         toolTrace?: string[];
+        cards?: unknown[];
       };
       const reply = body.reply ?? "I couldn't answer that. Try again?";
+      const cards = (body.cards ?? []).filter((c): c is TransactionCardVM => {
+        if (typeof c !== "object" || c === null) return false;
+        const kind = (c as { kind?: unknown }).kind;
+        return typeof kind === "string" && kind.startsWith("transaction_");
+      });
       setHistory([
         ...outgoingHistory,
         { role: "assistant" as const, text: reply },
@@ -70,6 +86,7 @@ export function ChatPane() {
           role: "assistant",
           text: reply,
           tools: body.toolTrace?.length ? body.toolTrace : undefined,
+          cards: cards.length ? cards : undefined,
         },
       ]);
       if (body.refresh) router.refresh();
@@ -84,6 +101,22 @@ export function ChatPane() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleConfirmed(id: string) {
+    setRows((r) =>
+      r.map((row) =>
+        row.kind === "msg" && row.cards
+          ? {
+              ...row,
+              cards: row.cards.map((c) =>
+                c.id === id ? { ...c, status: "confirmed" as const } : c
+              ),
+            }
+          : row
+      )
+    );
+    router.refresh();
   }
 
   return (
@@ -111,6 +144,13 @@ export function ChatPane() {
                     }
                   >
                     {row.text}
+                    {row.cards?.map((card) => (
+                      <DraftExpenseCard
+                        key={card.id}
+                        card={card}
+                        onConfirmed={handleConfirmed}
+                      />
+                    ))}
                     {row.tools && row.tools.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {row.tools.map((t) => (

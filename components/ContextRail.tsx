@@ -26,9 +26,7 @@ function BudgetCard({
       <p
         className={`num mt-1 font-display text-[24px] font-semibold ${over ? "text-over" : "text-confirmed"}`}
       >
-        {over
-          ? `${formatINR(b.budget - b.remaining_or_over - b.budget)}` && formatINR(b.spent)
-          : formatINR(b.remaining_or_over)}
+        {over ? formatINR(-b.remaining_or_over) : formatINR(b.remaining_or_over)}
         <span className="ml-1 align-[2px] text-[12px] font-medium text-ink-2">
           {over ? "over" : "left"}
         </span>

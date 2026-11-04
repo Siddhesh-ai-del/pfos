@@ -131,8 +131,11 @@ export const TOOL_DEFS: Record<ToolName, ToolDef> = {
 };
 
 export const RELEASED_TOOLS = new Set<ToolName>([
-  // Slice 2: read-only context only. Later slices add tools here, never rearchitect.
+  // Slice 2: read-only context
   "pfos_ledger_get_financial_context",
+  // Slice 3: capture draft→confirm (headphone moment)
+  "pfos_ledger_log_expense_draft",
+  "pfos_ledger_confirm_transaction",
 ]);
 
 export const RELEASED_TOOL_DEFS: ToolDef[] = TOOL_NAMES.filter((t) =>
