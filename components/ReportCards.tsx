@@ -1,8 +1,10 @@
 import dayjs from "dayjs";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Fingerprint } from "lucide-react";
 import { formatINR } from "@/lib/demo";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type ByCategory = { category: string; total: number };
 type BudgetRow = { name: string; remaining_or_over: number | null };
@@ -88,7 +90,10 @@ export function ReportCardDaily({ card }: { card: ReportCardVM }) {
           <Badge variant="outline">Report 04-A</Badge>
           <span className="label-tech">Daily</span>
         </div>
-        <span className="num font-mono text-[11px] text-ink-2">{dayLabel}</span>
+        <div className="flex items-center gap-1">
+          <span className="num font-mono text-[11px] text-ink-2">{dayLabel}</span>
+          <Popover><PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Report details"><Fingerprint className="h-3.5 w-3.5" /></Button></PopoverTrigger><PopoverContent align="end" className="w-64"><p className="label-tech mb-1 text-copper-fg">Report source</p><p className="text-[12px] text-ink-2">Deterministic values rendered from RPC report payload.</p><p className="mt-1 font-mono text-[11px] text-ink">{r.day}</p></PopoverContent></Popover>
+        </div>
       </div>
       <p className="num mt-3 font-display text-[34px] leading-none tracking-tight text-ink">
         {formatINR(r.expenses_total)}
@@ -127,11 +132,14 @@ export function ReportCardMonthly({ card }: { card: ReportCardVM }) {
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <BarChart3 className="h-3.5 w-3.5 text-copper" aria-hidden="true" />
+          <BarChart3 className="h-3.5 w-3.5 text-copper-fg" aria-hidden="true" />
           <Badge variant="outline">Report 04-B</Badge>
           <span className="label-tech">Monthly</span>
         </div>
-        <span className="num font-mono text-[11px] text-ink-2">{monthLabel}</span>
+        <div className="flex items-center gap-1">
+          <span className="num font-mono text-[11px] text-ink-2">{monthLabel}</span>
+          <Popover><PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Report details"><Fingerprint className="h-3.5 w-3.5" /></Button></PopoverTrigger><PopoverContent align="end" className="w-64"><p className="label-tech mb-1 text-copper-fg">Report source</p><p className="text-[12px] text-ink-2">Deterministic values rendered from RPC report payload.</p><p className="mt-1 font-mono text-[11px] text-ink">{r.month}</p></PopoverContent></Popover>
+        </div>
       </div>
       <p className="num mt-3 font-display text-[34px] leading-none tracking-tight text-ink">
         {formatINR(r.expenses)}

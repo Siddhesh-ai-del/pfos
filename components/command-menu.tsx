@@ -14,18 +14,22 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { PanelRightOpen, RotateCcw, Fingerprint, SunMoon, Keyboard, PenLine } from "lucide-react";
+import { PanelRightOpen, RotateCcw, Fingerprint, SunMoon, Keyboard, PenLine, Columns2 } from "lucide-react";
 
 export function CommandMenu({
   onOpenInstruments,
   onOpenTrace,
   onOpenHelp,
   onOpenCapture,
+  onToggleSplit,
+  splitView,
 }: {
   onOpenInstruments: () => void;
   onOpenTrace: () => void;
   onOpenHelp: () => void;
   onOpenCapture: () => void;
+  onToggleSplit?: () => void;
+  splitView?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const { setTheme, resolvedTheme } = useTheme();
@@ -69,6 +73,7 @@ export function CommandMenu({
         <CommandGroup heading="Ledger">
           <CommandItem onSelect={run(onOpenCapture)}><PenLine className="mr-2 h-4 w-4" />Manual capture<CommandShortcut>C</CommandShortcut></CommandItem>
           <CommandItem onSelect={run(onOpenInstruments)}><PanelRightOpen className="mr-2 h-4 w-4" />Open instruments<CommandShortcut>I</CommandShortcut></CommandItem>
+          {onToggleSplit ? <CommandItem onSelect={run(onToggleSplit)}><Columns2 className="mr-2 h-4 w-4" />{splitView ? "Unpin instruments" : "Pin instruments (split)"}<CommandShortcut>S</CommandShortcut></CommandItem> : null}
           <CommandItem onSelect={run(onOpenTrace)}><Fingerprint className="mr-2 h-4 w-4" />Open trace<CommandShortcut>T</CommandShortcut></CommandItem>
         </CommandGroup>
         <CommandSeparator />

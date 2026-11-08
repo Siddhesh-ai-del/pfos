@@ -121,11 +121,11 @@ export function DraftExpenseCard({
 
       {confirmed ? (
         <div className="stamp-in mt-3 flex items-center gap-2 border-t border-rule pt-2.5">
-          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-confirmed/15 text-confirmed">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-confirmed/15 text-confirmed-fg">
             <Check className="h-3 w-3" />
           </span>
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-wide text-confirmed">
+            <p className="font-mono text-[11px] uppercase tracking-wide text-confirmed-fg">
               Ledger accepted
             </p>
             <p className="text-[11px] text-ink-2">Confirmed and recorded in the ledger.</p>
@@ -152,7 +152,7 @@ export function DraftExpenseCard({
       )}
 
       {error && (
-        <p role="alert" className="mt-2 font-mono text-[12px] text-over">
+        <p role="alert" className="mt-2 font-mono text-[12px] text-over-fg">
           {error}
         </p>
       )}

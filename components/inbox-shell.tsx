@@ -20,6 +20,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } f
 import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/demo";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 export function InboxShell({
   context,
@@ -31,6 +32,7 @@ export function InboxShell({
   const [instrumentsOpen, setInstrumentsOpen] = React.useState(false);
   const [helpOpen, setHelpOpen] = React.useState(false);
   const [captureOpen, setCaptureOpen] = React.useState(false);
+  const [splitView, setSplitView] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const monthExpense = context.budgets.reduce((acc, b) => acc + b.spent, 0);
   const animatedSpend = useCountUp(monthExpense);
@@ -71,7 +73,27 @@ export function InboxShell({
         </div>
 
         <div className="min-h-0 flex-1">
-          <ChatPane contextDay={context.day} />
+          {isDesktop && splitView ? (
+            <ResizablePanelGroup orientation="horizontal" className="h-full gap-3">
+              <ResizablePanel defaultSize={62} minSize={40}>
+                <div className="h-full min-h-0"><ChatPane contextDay={context.day} /></div>
+              </ResizablePanel>
+              <ResizableHandle withHandle className="mx-0" />
+              <ResizablePanel defaultSize={38} minSize={24}>
+                <aside className="surface-instrument flex h-full min-h-0 flex-col overflow-hidden">
+                  <div className="border-b border-rule px-3 py-2.5">
+                    <p className="label-tech text-copper-fg">Instruments · pinned</p>
+                    <p className="font-display text-[18px] tracking-tight">Financial context</p>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                    <ContextInstruments context={context} />
+                  </div>
+                </aside>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          ) : (
+            <ChatPane contextDay={context.day} />
+          )}
         </div>
       </main>
 
@@ -114,6 +136,8 @@ export function InboxShell({
         onOpenTrace={openTrace}
         onOpenHelp={() => setHelpOpen(true)}
         onOpenCapture={() => setCaptureOpen(true)}
+        onToggleSplit={() => setSplitView((v) => !v)}
+        splitView={splitView}
       />
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
       <ManualCaptureDialog open={captureOpen} onOpenChange={setCaptureOpen} onCapture={capture} />

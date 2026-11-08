@@ -327,7 +327,7 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
                     ) : (
                       <div
                         role="alert"
-                        className="mx-auto w-full max-w-3xl border border-dashed border-over/40 bg-over/5 px-3 py-2.5 text-[13px] text-over"
+                        className="mx-auto w-full max-w-3xl border border-dashed border-over/40 bg-over/5 px-3 py-2.5 text-[13px] text-over-fg"
                       >
                         <span className="label-tech mr-2 text-over-fg">Error</span>
                         {row.text}
