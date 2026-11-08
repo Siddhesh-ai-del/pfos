@@ -1,27 +1,64 @@
 @import "tailwindcss";
 
 /* ============================================================
-   PFOS — "Quiet Ledger" design tokens (docs/design-direction.md)
-   Canonical for all Phase 4 UI code.
+   PFOS — "Inbox Ledger × MONOLITH" design tokens
+   Instrumental Modernism: precision, hierarchy, restraint.
+   PFOS invariants preserved: draft→confirm, semantic states,
+   tabular numerals for money/counts, accessible focus/motion.
    ============================================================ */
 
 :root {
-  --paper: #fbf9f4;      /* app background (warm, not clinical white) */
-  --ink: #191713;        /* primary text */
-  --ink-2: #6b655b;      /* secondary text */
-  --rule: #e5e1d8;       /* hairline borders / row rules */
-  --confirmed: #1b6e45;  /* semantic green — confirmation & remaining ONLY */
-  --over: #b3402e;       /* over-budget / cancelled semantic ONLY (never pulses) */
-  --estimate: #8a7a55;   /* pencil tone for estimated/dashed states */
-  --card: #ffffff;       /* card surfaces: flat, hairline border */
+  /* MONOLITH foundation (light — premium architectural paper) */
+  --paper: #f5f3ec;       /* Paper: app background */
+  --surface-2: #eae8df;   /* Bone: secondary surfaces / instruments */
+  --card: #fbfaf6;        /* elevated instrument surface */
+  --ink: #171918;         /* Graphite: primary text */
+  --ink-2: #898b83;       /* Muted Grey: secondary/meta (tuned in context) */
+  --rule: rgba(23, 25, 24, 0.12); /* hairline rules */
 
-  --radius-card: 10px;
-  --radius-chip: 5px;
+  /* Signature + PFOS semantics */
+  --copper: #b47755;      /* Oxidized Copper: selective emphasis/trace ONLY */
+  --confirmed: #849681;   /* Technical Green: confirmed/healthy/remaining */
+  --over: #a65448;        /* restrained danger: over-budget/cancelled/error */
+  --estimate: #8c8174;    /* provisional instrument tone (draft/estimated) */
+
+  /* Interaction */
+  --ring: var(--copper);
+  --selection: rgba(180, 119, 85, 0.16);
+
+  /* Radii — precise, not oversized */
+  --radius-card: 8px;
+  --radius-chip: 4px;
   --radius-button: 6px;
+  --radius-input: 6px;
+
+  /* Motion */
+  --dur-fast: 140ms;
+  --dur-base: 180ms;
+  --ease-instrument: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dark {
+  /* MONOLITH dark — sophisticated industrial instrument */
+  --paper: #171918;       /* Graphite */
+  --surface-2: #222624;   /* Obsidian */
+  --card: #1d201e;
+  --ink: #eae8df;         /* Bone */
+  --ink-2: #898b83;       /* Muted Grey */
+  --rule: rgba(234, 232, 223, 0.12);
+
+  --copper: #c58a68;
+  --confirmed: #93a790;
+  --over: #c46a5c;
+  --estimate: #a79b8b;
+
+  --ring: var(--copper);
+  --selection: rgba(197, 138, 104, 0.18);
 }
 
 @theme inline {
   --color-paper: var(--paper);
+  --color-surface-2: var(--surface-2);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-rule: var(--rule);
@@ -29,79 +66,189 @@
   --color-over: var(--over);
   --color-estimate: var(--estimate);
   --color-card: var(--card);
+  --color-copper: var(--copper);
+  --color-ring: var(--ring);
 
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-plex-sans);
+  --font-display: var(--font-instrument-serif);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-plex-mono);
 
   --radius-card: var(--radius-card);
   --radius-chip: var(--radius-chip);
   --radius-button: var(--radius-button);
+  --radius-input: var(--radius-input);
+}
+
+* {
+  border-color: var(--rule);
 }
 
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--selection);
 }
 
 /* Tabular numerals are MANDATORY wherever money or counts render. */
 .num {
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
-/* Stamp / pencil trust pair (the single signature detail). */
-.card--draft {
-  border: 1px dashed var(--estimate);
-  background: color-mix(in srgb, var(--estimate) 4%, var(--card));
+/* MONOLITH technical labels: small, uppercase, precise. */
+.label-tech {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
 }
-.card--confirmed {
+
+/* Instrument surfaces */
+.surface-instrument {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+}
+.surface-inset {
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+}
+
+/* PFOS trust pair — preserved semantics, MONOLITH finish */
+.card--draft,
+.state-estimated {
+  border: 1px dashed color-mix(in srgb, var(--estimate) 70%, var(--rule));
+  background: color-mix(in srgb, var(--estimate) 6%, var(--card));
+}
+.card--confirmed,
+.state-confirmed {
   border: 1px solid var(--rule);
   background: var(--card);
 }
 
-/* Soft hairline rule used under sticks and card headers. */
-.rule-t {
-  border-top: 1px solid var(--rule);
+.rule-t { border-top: 1px solid var(--rule); }
+.rule-b { border-bottom: 1px solid var(--rule); }
+
+/* Copper trace — selective emphasis only */
+.trace-copper {
+  box-shadow: inset 2px 0 0 var(--copper);
 }
 
-/* Focus: visible ink ring on light surfaces (a11y §4.7). */
+/* Focus: visible instrument ring (a11y) */
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
-/* Signature motion: the stamp settle (only transition with a story).
-   180ms ease-out; disabled under prefers-reduced-motion. */
+/* Signature motion: settle — functional, not decorative. */
 .stamp-settle {
-  transition-property: transform, border-color, background-color;
-  transition-duration: 180ms;
-  transition-timing-function: ease-out;
+  transition-property: transform, border-color, background-color, color, opacity, box-shadow;
+  transition-duration: var(--dur-base);
+  transition-timing-function: var(--ease-instrument);
 }
 .stamp-settle:active {
-  transform: scale(0.96);
+  transform: scale(0.985);
 }
 @media (prefers-reduced-motion: reduce) {
-  .stamp-settle {
-    transition: none;
+  .stamp-settle, .motion-safe {
+    transition: none !important;
+    animation: none !important;
   }
-  .stamp-settle:active {
-    transform: none;
-  }
+  .stamp-settle:active { transform: none; }
 }
 
-/* ENTER keyboard hint on the composer — ledger voice, no decoration. */
+/* Keyboard hint — ledger voice */
 kbd {
-  font-family: var(--font-plex-mono), monospace;
-  font-size: 11px;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
   border: 1px solid var(--rule);
   border-radius: var(--radius-chip);
-  padding: 1px 5px;
-  background: var(--card);
+  padding: 2px 6px;
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
   color: var(--ink-2);
+}
+
+/* Subtle instrument grid texture (very restrained) */
+.monolith-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--rule) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--rule) 55%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Scrollbar refinement */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ink-2) 35%, transparent) transparent;
+}
+
+/* Motion utilities for Radix data-state (Sheet/Dialog) + PFOS soul */
+@keyframes pfos-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pfos-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes pfos-slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes pfos-slide-out-right { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes pfos-slide-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes pfos-slide-out-left { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes pfos-slide-in-bottom { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes pfos-slide-out-bottom { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@keyframes pfos-stamp-in {
+  0% { opacity: 0; transform: scale(0.92) translateY(2px); filter: blur(0.2px); }
+  60% { opacity: 1; transform: scale(1.01) translateY(0); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+@keyframes pfos-copper-trace {
+  from { box-shadow: inset 2px 0 0 transparent; }
+  to { box-shadow: inset 2px 0 0 var(--copper); }
+}
+@keyframes pfos-ledger-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+[data-state="open"].animate-in { animation-duration: var(--dur-base); animation-timing-function: var(--ease-instrument); animation-fill-mode: both; }
+[data-state="closed"].animate-out { animation-duration: var(--dur-fast); animation-timing-function: var(--ease-instrument); animation-fill-mode: both; }
+.fade-in-0[data-state="open"], [data-state="open"] .fade-in-0 { animation-name: pfos-fade-in; }
+.fade-out-0[data-state="closed"], [data-state="closed"] .fade-out-0 { animation-name: pfos-fade-out; }
+[data-state="open"].slide-in-from-right, .slide-in-from-right[data-state="open"] { animation-name: pfos-slide-in-right; }
+[data-state="closed"].slide-out-to-right, .slide-out-to-right[data-state="closed"] { animation-name: pfos-slide-out-right; }
+[data-state="open"].slide-in-from-left { animation-name: pfos-slide-in-left; }
+[data-state="closed"].slide-out-to-left { animation-name: pfos-slide-out-left; }
+[data-state="open"].slide-in-from-bottom { animation-name: pfos-slide-in-bottom; }
+[data-state="closed"].slide-out-to-bottom { animation-name: pfos-slide-out-bottom; }
+
+.stamp-in {
+  animation: pfos-stamp-in 260ms var(--ease-instrument) both;
+}
+.ledger-pulse {
+  animation: pfos-ledger-pulse 1.4s ease-in-out infinite;
+}
+.ledger-pulse-delay {
+  animation: pfos-ledger-pulse 1.4s ease-in-out 0.18s infinite;
+}
+.ledger-pulse-delay-2 {
+  animation: pfos-ledger-pulse 1.4s ease-in-out 0.36s infinite;
+}
+.receipt-confirmed {
+  animation: pfos-copper-trace 220ms var(--ease-instrument) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-state="open"].animate-in, [data-state="closed"].animate-out,
+  .stamp-in, .ledger-pulse, .ledger-pulse-delay, .ledger-pulse-delay-2, .receipt-confirmed { animation: none !important; }
 }

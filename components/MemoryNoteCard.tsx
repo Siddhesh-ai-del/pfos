@@ -1,5 +1,5 @@
-// MemoryNoteCard (docs/design-direction.md §4.4): quiet confirmation that a
-// decision/commitment was recorded — no stamp (it's non-money write; audit auto).
+import { BookMarked } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export type MemoryNoteCardVM = {
   kind: "memory_note";
@@ -10,22 +10,23 @@ export type MemoryNoteCardVM = {
 };
 
 export function MemoryNoteCard({ card }: { card: MemoryNoteCardVM }) {
+  const isCommitment = card.memoryType === "commitment";
   return (
     <div
-      className="card--confirmed mt-2 w-full rounded-card p-3"
+      className="mt-3 w-full rounded-[var(--radius-card)] border border-rule bg-surface-2/15 p-3.5 trace-copper"
       role="group"
-      aria-label={card.memoryType === "commitment" ? "Commitment recorded" : "Decision recorded"}
+      aria-label={isCommitment ? "Commitment recorded" : "Decision recorded"}
     >
-      <span
-        className={`font-mono text-[10px] uppercase tracking-widest ${
-          card.memoryType === "commitment" ? "text-confirmed" : "text-estimate"
-        }`}
-      >
-        {card.memoryType} · open
-      </span>
-      <p className="mt-1 text-[14px] leading-snug text-ink">{card.text}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <BookMarked className="h-3.5 w-3.5 text-copper" aria-hidden="true" />
+        <Badge variant={isCommitment ? "confirmed" : "estimate"}>
+          {card.memoryType} · open
+        </Badge>
+        <span className="label-tech">Memory</span>
+      </div>
+      <p className="mt-2.5 text-[14px] leading-relaxed text-ink">{card.text}</p>
       {card.sub && (
-        <p className="num mt-1 text-[11px] uppercase tracking-wide text-ink-2">
+        <p className="num mt-2 border-t border-rule pt-2 font-mono text-[11px] uppercase tracking-wide text-ink-2">
           {card.sub}
         </p>
       )}

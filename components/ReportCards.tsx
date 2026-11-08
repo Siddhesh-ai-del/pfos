@@ -1,15 +1,11 @@
-// ReportCards (design-direction §1 Q7): reports are deterministic editorial
-// spreads. Every number on these cards is rendered from RPC tokens passed in
-// `report`; the LLM never touches them (LLM produces optional prose only).
-
 import dayjs from "dayjs";
+import { BarChart3 } from "lucide-react";
 import { formatINR } from "@/lib/demo";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 type ByCategory = { category: string; total: number };
-type BudgetRow = {
-  name: string;
-  remaining_or_over: number | null;
-};
+type BudgetRow = { name: string; remaining_or_over: number | null };
 
 type DailyReport = {
   day: string;
@@ -42,30 +38,33 @@ export type ReportCardVM =
 function CategoryRows({ rows }: { rows: ByCategory[] }) {
   if (rows.length === 0) {
     return (
-      <p className="mt-2 text-[13px] text-ink-2">
+      <p className="mt-3 text-[13px] text-ink-2">
         Nothing recorded — this period is empty.
       </p>
     );
   }
   const max = Math.max(...rows.map((r) => r.total), 1);
   return (
-    <ul className="mt-2 divide-y divide-rule">
-      {rows.map((r) => (
-        <li key={r.category} className="flex items-center gap-3 py-1.5">
-          <span className="w-24 shrink-0 text-[13px] capitalize text-ink">
+    <ul className="mt-3 space-y-2">
+      {rows.map((r, idx) => (
+        <li key={r.category} className="grid grid-cols-[auto_5rem_1fr_auto] items-center gap-2">
+          <span className="font-mono text-[10px] text-ink-2">
+            {String(idx + 1).padStart(2, "0")}
+          </span>
+          <span className="truncate text-[13px] capitalize text-ink">
             {r.category}
           </span>
           <div
-            className="h-2 rounded-full bg-rule"
+            className="h-1.5 rounded-full bg-rule/80"
             role="presentation"
-            style={{ width: "100%" }}
+            aria-hidden="true"
           >
             <div
-              className="h-2 rounded-full bg-ink"
-              style={{ width: `${Math.round((r.total / max) * 100)}%` }}
+              className="h-1.5 rounded-full bg-ink/75"
+              style={{ width: `${Math.max(2, Math.round((r.total / max) * 100))}%` }}
             />
           </div>
-          <span className="num ml-auto shrink-0 text-[13px] text-ink">
+          <span className="num font-mono text-[12px] text-ink">
             {formatINR(r.total)}
           </span>
         </li>
@@ -80,23 +79,39 @@ export function ReportCardDaily({ card }: { card: ReportCardVM }) {
   const dayLabel = dayjs(r.day).format("MMM D, YYYY");
   return (
     <section
-      className="card--confirmed mt-2 w-full rounded-card p-3"
+      className="mt-3 w-full rounded-[var(--radius-card)] border border-rule bg-card p-4"
       aria-label={`Daily report for ${dayLabel}`}
     >
-      <h4 className="font-mono text-[10px] uppercase tracking-widest text-ink-2">
-        Daily report · {dayLabel}
-      </h4>
-      <p className="num mt-1 font-display text-[28px] font-semibold leading-none text-ink">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-3.5 w-3.5 text-copper" aria-hidden="true" />
+          <Badge variant="outline">Report 04-A</Badge>
+          <span className="label-tech">Daily</span>
+        </div>
+        <span className="num font-mono text-[11px] text-ink-2">{dayLabel}</span>
+      </div>
+      <p className="num mt-3 font-display text-[34px] leading-none tracking-tight text-ink">
         {formatINR(r.expenses_total)}
-        <span className="ml-2 align-[3px] text-[12px] font-medium text-ink-2">spent</span>
       </p>
+      <p className="label-tech mt-1">spent</p>
       <CategoryRows rows={r.by_category} />
-      <p className="num mt-2 border-t border-rule pt-2 text-[12px] text-ink-2">
-        Tiffin — breakfast {r.tiffin.breakfast}, lunch {r.tiffin.lunch}, dinner{" "}
-        {r.tiffin.dinner}.
-        {r.tiffin.billed_to_date > 0 &&
-          ` Billed today: ${formatINR(r.tiffin.billed_to_date)}.`}
-      </p>
+      <Separator className="my-3" />
+      <dl className="grid gap-1 text-[12px]">
+        <div className="flex justify-between gap-3">
+          <dt className="label-tech">Tiffin</dt>
+          <dd className="num font-mono text-ink-2">
+            B {r.tiffin.breakfast} · L {r.tiffin.lunch} · D {r.tiffin.dinner}
+          </dd>
+        </div>
+        {r.tiffin.billed_to_date > 0 && (
+          <div className="flex justify-between gap-3">
+            <dt className="label-tech">Billed today</dt>
+            <dd className="num font-mono text-ink">
+              {formatINR(r.tiffin.billed_to_date)}
+            </dd>
+          </div>
+        )}
+      </dl>
     </section>
   );
 }
@@ -107,36 +122,46 @@ export function ReportCardMonthly({ card }: { card: ReportCardVM }) {
   const monthLabel = dayjs(r.month).format("MMMM YYYY");
   return (
     <section
-      className="card--confirmed mt-2 w-full rounded-card p-4"
+      className="mt-3 w-full rounded-[var(--radius-card)] border border-rule bg-card p-4"
       aria-label={`Monthly statement for ${monthLabel}`}
     >
-      <h4 className="font-mono text-[10px] uppercase tracking-widest text-ink-2">
-        Monthly statement · {monthLabel}
-      </h4>
-      <p className="num mt-1 font-display text-[28px] font-semibold leading-none text-ink">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-3.5 w-3.5 text-copper" aria-hidden="true" />
+          <Badge variant="outline">Report 04-B</Badge>
+          <span className="label-tech">Monthly</span>
+        </div>
+        <span className="num font-mono text-[11px] text-ink-2">{monthLabel}</span>
+      </div>
+      <p className="num mt-3 font-display text-[34px] leading-none tracking-tight text-ink">
         {formatINR(r.expenses)}
-        <span className="ml-2 align-[3px] text-[12px] font-medium text-ink-2">
-          spent so far
-        </span>
       </p>
+      <p className="label-tech mt-1">spent so far</p>
       <CategoryRows rows={r.by_category} />
 
+      {(r.prev_month || r.budget_violations.length > 0 || r.recurring_candidates.length > 0) && (
+        <Separator className="my-3" />
+      )}
+
       {r.prev_month && (
-        <p className="num mt-2 border-t border-rule pt-2 text-[12px] text-ink-2">
-          October: {formatINR(r.prev_month.expenses)}
+        <p className="num flex justify-between gap-3 font-mono text-[12px] text-ink-2">
+          <span className="label-tech">Previous month</span>
+          <span>{formatINR(r.prev_month.expenses)}</span>
         </p>
       )}
       {r.budget_violations.length > 0 && (
-        <p className="num mt-1 text-[12px] text-over">
-          {r.budget_violations
-            .map((v) => `${v.category} over by ${formatINR(v.over_by)}`)
-            .join(" · ")}
-        </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {r.budget_violations.map((v) => (
+            <Badge key={v.category} variant="over" className="normal-case tracking-normal">
+              {v.category} over by {formatINR(v.over_by)}
+            </Badge>
+          ))}
+        </div>
       )}
       {r.recurring_candidates.length > 0 && (
-        <p className="num mt-1 text-[11px] uppercase tracking-wide text-ink-2">
-          recurring: {r.recurring_candidates.map((c) => c.label).join(", ")} — seen
-          both months
+        <p className="num mt-2 text-[11px] text-ink-2">
+          <span className="label-tech mr-2">Recurring</span>
+          {r.recurring_candidates.map((c) => c.label).join(", ")} — seen both months
         </p>
       )}
     </section>

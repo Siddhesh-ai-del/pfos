@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import dayjs from "dayjs";
+import { Check, ReceiptText } from "lucide-react";
 import { formatINR } from "@/lib/demo";
-
-// DraftExpenseCard (docs/design-direction.md §4.4, §4.6): dashed pencil-toned
-// "Estimated" card; Confirm stamps it (the one signature motion).
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export type TransactionCardVM = {
   kind: "transaction_draft" | "transaction_confirmed";
@@ -47,60 +48,87 @@ export function DraftExpenseCard({
     }
   }
 
-  const day = dayjs(card.occurred_on).format("MMM D");
+  const day = dayjs(card.occurred_on).format("MMM D, YYYY");
   const category = card.category ?? "spend";
 
   return (
     <div
-      className={`mt-2 w-full rounded-card p-3 ${
-        confirmed ? "card--confirmed" : "card--draft stamp-settle"
-      }`}
+      className={cn(
+        "mt-3 w-full rounded-[var(--radius-card)] border p-3.5 transition-[border-color,background-color,box-shadow] duration-[var(--dur-base)]",
+        confirmed
+          ? "receipt-confirmed border-confirmed/20 bg-surface-2/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
+          : "border-dashed border-estimate/45 bg-estimate/[0.045] trace-copper"
+      )}
       role="group"
       aria-label={confirmed ? "Confirmed expense draft" : "Estimated expense draft"}
     >
-      <div className="flex items-center justify-between gap-4">
-        <span
-          className={`font-mono text-[10px] uppercase tracking-widest ${
-            confirmed ? "text-confirmed" : "text-estimate"
-          }`}
-        >
-          {confirmed ? "Confirmed" : "Estimated"}
-        </span>
-        <span className="num text-[11px] text-ink-2">{day}</span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="label-tech text-copper">REC</span>
+          <Badge variant={confirmed ? "confirmed" : "estimate"}>
+            {confirmed ? "Confirmed" : "Estimated"}
+          </Badge>
+          <span className="label-tech">Expense</span>
+        </div>
+        <span className="num font-mono text-[11px] text-ink-2">{day}</span>
       </div>
-      <p className="num mt-1 font-display text-[28px] leading-none font-semibold text-ink">
-        {formatINR(card.amount_in_minor_paise)}
-      </p>
-      <p className="mt-1 text-[13px] capitalize text-ink">
-        {category}
-        {card.note && (
-          <span className="text-ink-2"> · {card.note}</span>
-        )}
-      </p>
-      {confirmed ? (
-        <p className="num mt-2 border-t border-rule pt-2 text-[11px] uppercase tracking-widest text-confirmed">
-          Ledger accepted
+
+      <div className="mt-3 flex items-end justify-between gap-4">
+        <div>
+          <p className="label-tech">Amount</p>
+          <p className="num mt-0.5 font-display text-[34px] leading-none tracking-tight text-ink">
+            {formatINR(card.amount_in_minor_paise)}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="label-tech">Category</p>
+          <p className="mt-0.5 font-mono text-[12px] uppercase tracking-wide text-ink">
+            {category}
+          </p>
+        </div>
+      </div>
+
+      {card.note && (
+        <p className="mt-3 border-t border-rule pt-2.5 text-[13px] text-ink-2">
+          <span className="label-tech mr-2">Note</span>
+          <span className="text-ink">{card.note}</span>
         </p>
+      )}
+
+      {confirmed ? (
+        <div className="stamp-in mt-3 flex items-center gap-2 border-t border-rule pt-2.5">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-confirmed/15 text-confirmed">
+            <Check className="h-3 w-3" />
+          </span>
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-wide text-confirmed">
+              Ledger accepted
+            </p>
+            <p className="text-[11px] text-ink-2">Confirmed and recorded in the ledger.</p>
+          </div>
+          <ReceiptText className="ml-auto h-3.5 w-3.5 text-ink-2" aria-hidden="true" />
+        </div>
       ) : (
-        <div className="mt-2 flex items-center justify-between gap-3 border-t border-rule pt-2">
-          <p className="text-[11px] leading-snug text-ink-2">
+        <div className="mt-3 flex flex-col gap-2.5 border-t border-rule pt-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-[34ch] text-[12px] leading-snug text-ink-2">
             Saved as an estimate. Nothing hits the ledger until you confirm.
           </p>
-          <button
+          <Button
             type="button"
             onClick={confirm}
             disabled={busy}
             aria-label={`Confirm expense draft of ${formatINR(
               card.amount_in_minor_paise
             )}`}
-            className="stamp-settle shrink-0 rounded-button border border-ink bg-ink px-4 py-2 text-[13px] font-medium text-paper disabled:opacity-40"
+            className="sm:shrink-0"
           >
             {busy ? "Stamping…" : "Confirm"}
-          </button>
+          </Button>
         </div>
       )}
+
       {error && (
-        <p role="alert" className="mt-2 text-[12px] text-over">
+        <p role="alert" className="mt-2 font-mono text-[12px] text-over">
           {error}
         </p>
       )}

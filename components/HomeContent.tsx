@@ -1,7 +1,5 @@
 import { getSupabase } from "@/lib/supabase-server";
-import { ContextRail } from "@/components/ContextRail";
-import { ChatPane } from "@/components/ChatPane";
-import { TopBar } from "@/components/TopBar";
+import { InboxShell } from "@/components/inbox-shell";
 import dayjs from "dayjs";
 
 // Async server component — all Postgres data access lives here, inside a
@@ -14,44 +12,39 @@ export default async function HomeContent() {
   try {
     context = await getFinContext();
   } catch (e) {
-    // server-only log; the rendered error is a generic string (no RPC internals)
     console.error("get_financial_context failed", e);
     loadError = "The ledger is unreachable right now.";
   }
 
-  if (loadError) {
+  if (loadError || !context) {
     return (
-      <>
-        <TopBar monthLabel="Ledger unavailable" />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 md:px-8">
-        <div className="card--confirmed rounded-card p-6">
-          <p className="font-mono text-sm uppercase tracking-wide text-ink-2">
-            Ledger unavailable
-          </p>
-          <p className="mt-2 text-[15px] text-ink">
-            I couldn&apos;t reach the ledger. Try again in a moment.
-          </p>
-          <p className="mt-1 text-[13px] text-ink-2">{loadError}</p>
-        </div>
-      </main>
-      </>
+      <div className="flex min-h-dvh flex-col bg-paper text-ink">
+        <header className="border-b border-rule px-4 py-4 md:px-6">
+          <div className="mx-auto flex max-w-7xl items-center gap-2">
+            <span className="label-tech text-copper">PFOS</span>
+            <span className="font-display text-[22px] tracking-tight">Ledger</span>
+          </div>
+        </header>
+        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 md:px-6">
+          <div className="surface-instrument p-6">
+            <p className="label-tech text-over">Ledger unavailable</p>
+            <p className="mt-2 text-[15px] text-ink">
+              I couldn&apos;t reach the ledger. Try again in a moment.
+            </p>
+            {loadError && (
+              <p className="mt-1 font-mono text-[12px] text-ink-2">{loadError}</p>
+            )}
+          </div>
+        </main>
+      </div>
     );
   }
 
-  if (!context) return null;
-
   return (
-    <>
-      <TopBar monthLabel={dayjs(context.day).format("MMMM YYYY")} />
-      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-4 pb-8 pt-6 md:grid-cols-5 md:px-8">
-        <div className="md:col-span-3">
-          <ChatPane />
-        </div>
-        <div className="md:col-span-2">
-          <ContextRail context={context} />
-        </div>
-      </main>
-    </>
+    <InboxShell
+      context={context}
+      monthLabel={dayjs(context.day).format("MMMM YYYY")}
+    />
   );
 }
 
