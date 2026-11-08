@@ -5,6 +5,10 @@ import type { FinContext } from "@/components/HomeContent";
 import { TopBar } from "@/components/TopBar";
 import { ChatPane } from "@/components/ChatPane";
 import { ContextInstruments } from "@/components/instruments/ContextInstruments";
+import { CommandMenu } from "@/components/command-menu";
+import { HelpDialog } from "@/components/help-dialog";
+import { ManualCaptureDialog } from "@/components/manual-capture-dialog";
+import { useCountUp } from "@/components/ui/count-up";
 import {
   Sheet,
   SheetContent,
@@ -12,8 +16,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/demo";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 export function InboxShell({
   context,
@@ -23,17 +29,27 @@ export function InboxShell({
   monthLabel: string;
 }) {
   const [instrumentsOpen, setInstrumentsOpen] = React.useState(false);
+  const [helpOpen, setHelpOpen] = React.useState(false);
+  const [captureOpen, setCaptureOpen] = React.useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   const monthExpense = context.budgets.reduce((acc, b) => acc + b.spent, 0);
+  const animatedSpend = useCountUp(monthExpense);
+
+  const openTrace = () => window.dispatchEvent(new CustomEvent("pfos:open-trace"));
+  const focusComposer = () => window.dispatchEvent(new CustomEvent("pfos:focus-composer"));
+  const capture = (text: string) => window.dispatchEvent(new CustomEvent("pfos:capture", { detail: text }));
 
   return (
-    <div className="flex min-h-dvh flex-col bg-paper text-ink">
+    <div className="flex h-dvh min-h-dvh flex-col bg-paper text-ink">
       <TopBar
         monthLabel={monthLabel}
+        ledgerDay={context.day}
+        pendingEstimates={context.open_estimated_count}
         onOpenInstruments={() => setInstrumentsOpen(true)}
       />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pb-4 pt-4 md:px-6">
-        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-rule pb-3">
+      <main className="mx-auto flex w-full max-w-7xl min-h-0 flex-1 flex-col px-4 pb-3 pt-3 md:px-6 md:pb-4">
+        <div className="mb-3 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-rule pb-2.5">
           <div className="flex items-center gap-2">
             <span className="label-tech text-copper">01</span>
             <span className="label-tech">Inbox</span>
@@ -41,7 +57,7 @@ export function InboxShell({
           <div className="h-3 w-px bg-rule" aria-hidden="true" />
           <p className="num font-mono text-[12px] text-ink-2">
             Month spend{" "}
-            <span className="text-ink">{formatINR(monthExpense)}</span>
+            <span className="text-ink">{formatINR(animatedSpend)}</span>
           </p>
           {context.open_estimated_count > 0 && (
             <Badge variant="estimate">
@@ -50,7 +66,7 @@ export function InboxShell({
             </Badge>
           )}
           <p className="ml-auto hidden text-[12px] text-ink-2 lg:block">
-            Capture in one sentence. Review the draft. Confirm before it settles.
+            ⌘K commands · capture in one sentence · confirm before it settles
           </p>
         </div>
 
@@ -59,24 +75,48 @@ export function InboxShell({
         </div>
       </main>
 
-      <Sheet open={instrumentsOpen} onOpenChange={setInstrumentsOpen}>
-        <SheetContent side="right" className="flex w-[min(94vw,460px)] flex-col p-0 sm:max-w-[460px]">
-          <SheetHeader>
-            <div className="flex items-center gap-2">
-              <Badge variant="copper">INSTRUMENTS</Badge>
-              <span className="label-tech">{monthLabel}</span>
+      {isDesktop ? (
+        <Sheet open={instrumentsOpen} onOpenChange={setInstrumentsOpen}>
+          <SheetContent side="right" className="flex w-[min(94vw,460px)] flex-col p-0 sm:max-w-[460px]">
+            <SheetHeader>
+              <div className="flex items-center gap-2">
+                <Badge variant="copper">INSTRUMENTS</Badge>
+                <span className="label-tech">{monthLabel}</span>
+              </div>
+              <SheetTitle>Financial context</SheetTitle>
+              <SheetDescription>
+                Deterministic values from your ledger context. Use chat to capture;
+                confirm drafts before they settle.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+              <ContextInstruments context={context} />
             </div>
-            <SheetTitle>Financial context</SheetTitle>
-            <SheetDescription>
-              Deterministic values from your ledger context. Use chat to capture;
-              confirm drafts before they settle.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-            <ContextInstruments context={context} />
-          </div>
-        </SheetContent>
-      </Sheet>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Drawer open={instrumentsOpen} onOpenChange={setInstrumentsOpen}>
+          <DrawerContent className="max-h-[88vh]">
+            <DrawerHeader>
+              <div className="flex items-center gap-2"><Badge variant="copper">INSTRUMENTS</Badge><span className="label-tech">{monthLabel}</span></div>
+              <DrawerTitle>Financial context</DrawerTitle>
+              <DrawerDescription>Deterministic values from your ledger context.</DrawerDescription>
+            </DrawerHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
+              <ContextInstruments context={context} />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
+
+      <CommandMenu
+        onOpenInstruments={() => setInstrumentsOpen(true)}
+        onOpenTrace={openTrace}
+        onOpenHelp={() => setHelpOpen(true)}
+        onOpenCapture={() => setCaptureOpen(true)}
+      />
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+      <ManualCaptureDialog open={captureOpen} onOpenChange={setCaptureOpen} onCapture={capture} />
     </div>
   );
 }

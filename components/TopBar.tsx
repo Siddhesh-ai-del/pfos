@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { PanelRightOpen, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -15,18 +16,21 @@ import {
 
 export function TopBar({
   monthLabel,
+  ledgerDay,
+  pendingEstimates,
   onOpenInstruments,
 }: {
   monthLabel: string;
+  ledgerDay?: string;
+  pendingEstimates?: number;
   onOpenInstruments?: () => void;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function reset() {
     setBusy(true);
-    setError(null);
+    const t = toast.loading("Resetting demo…");
     try {
       const res = await fetch("/api/demo/reset", { method: "POST" });
       if (!res.ok) {
@@ -34,8 +38,9 @@ export function TopBar({
         throw new Error(body.error ?? "reset failed");
       }
       router.refresh();
+      toast.success("Demo reset to seed state", { id: t });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Reset failed");
+      toast.error(e instanceof Error ? e.message : "Reset failed", { id: t });
     } finally {
       setBusy(false);
     }
@@ -51,18 +56,22 @@ export function TopBar({
               Ledger
             </span>
           </div>
-          <Badge variant="outline" className="hidden sm:inline-flex">
-            {monthLabel}
-          </Badge>
-          <span className="label-tech hidden lg:inline">Inbox mode</span>
+          {ledgerDay ? (
+            <Badge variant="outline" className="hidden sm:inline-flex num font-normal normal-case tracking-normal">
+              {ledgerDay}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="hidden sm:inline-flex">{monthLabel}</Badge>
+          )}
+          {pendingEstimates ? (
+            <Badge variant="estimate" className="hidden sm:inline-flex">
+              {pendingEstimates} pending
+            </Badge>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-1.5">
-          {error && (
-            <span role="alert" className="mr-1 max-w-[220px] truncate text-[12px] text-over">
-              {error}
-            </span>
-          )}
+
           <TooltipProvider delayDuration={200}>
             {onOpenInstruments && (
               <Tooltip>

@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import dayjs from "dayjs";
-import { Check, UtensilsCrossed } from "lucide-react";
+import { Check, UtensilsCrossed, Fingerprint } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export type MealCardVM = {
@@ -72,13 +73,19 @@ export function MealDraftCard({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <UtensilsCrossed className="h-3.5 w-3.5 text-copper" aria-hidden="true" />
+          <UtensilsCrossed className="h-3.5 w-3.5 text-copper-fg" aria-hidden="true" />
           <Badge variant={confirmed ? "confirmed" : "estimate"}>
             {confirmed ? "Confirmed" : "Estimated"}
           </Badge>
           <span className="label-tech">Tiffin</span>
         </div>
-        <span className="num font-mono text-[11px] text-ink-2">{day}</span>
+        <div className="flex items-center gap-1">
+          <span className="num font-mono text-[11px] text-ink-2">{day}</span>
+          <Popover>
+            <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Meal audit"><Fingerprint className="h-3.5 w-3.5" /></Button></PopoverTrigger>
+            <PopoverContent align="end" className="w-64"><p className="label-tech mb-1 text-copper-fg">Meal record</p><p className="font-mono text-[11px] text-ink-2 break-all">{card.id}</p><p className="mt-1 text-[12px] text-ink">{meal} · {card.status} · {card.record_status}</p></PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowUp, Fingerprint, Sparkles } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DraftExpenseCard,
   type TransactionCardVM,
@@ -38,7 +39,8 @@ type ChatRow =
       tools?: string[];
       cards?: ChatCardVM[];
     }
-  | { kind: "error"; text: string };
+  | { kind: "error"; text: string }
+  | { kind: "notice"; text: string; retryText?: string };
 
 const GREETING: ChatRow = {
   kind: "msg",
@@ -49,6 +51,13 @@ const GREETING: ChatRow = {
 function toolLabel(name: string): string {
   return name.replace(/^pfos_(ledger|meal|memory)_/, "");
 }
+
+const SUGGESTIONS = [
+  "spent ₹120 on lunch",
+  "skipped dinner today",
+  "show my month",
+  "how's my budget?",
+] as const;
 
 export function ChatPane({ contextDay }: { contextDay?: string }) {
   const router = useRouter();
@@ -62,13 +71,30 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
   const [latestTrace, setLatestTrace] = useState<string[]>([]);
   const [traceOpen, setTraceOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const showSuggestions = rows.length === 1 && rows[0]?.kind === "msg" && rows[0]?.role === "assistant";
+  const sendTextRef = useRef(sendText);
+  sendTextRef.current = sendText;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end", behavior: reduce ? "auto" : "smooth" });
   }, [rows, busy, reduce]);
 
-  async function send() {
-    const text = draft.trim();
+  useEffect(() => {
+    const onTrace = () => setTraceOpen(true);
+    const onFocus = () => inputRef.current?.focus();
+    const onCapture = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t) void sendTextRef.current(t); };
+    window.addEventListener("pfos:open-trace", onTrace);
+    window.addEventListener("pfos:focus-composer", onFocus);
+    window.addEventListener("pfos:capture", onCapture as EventListener);
+    return () => {
+      window.removeEventListener("pfos:open-trace", onTrace);
+      window.removeEventListener("pfos:focus-composer", onFocus);
+      window.removeEventListener("pfos:capture", onCapture as EventListener);
+    };
+  }, []);
+
+  async function sendText(text: string) {
     if (!text || busy) return;
     setBusy(true);
     setDraft("");
@@ -86,8 +112,16 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
         refresh?: boolean;
         toolTrace?: string[];
         cards?: unknown[];
+        error?: string;
       };
       const reply = body.reply ?? "I couldn't answer that. Try again?";
+      if (!res.ok) {
+        setRows((r) => [
+          ...r,
+          { kind: "notice", text: reply, retryText: text },
+        ]);
+        return;
+      }
       const cards = (body.cards ?? []).filter((c): c is ChatCardVM => {
         if (typeof c !== "object" || c === null) return false;
         const kind = (c as { kind?: unknown }).kind;
@@ -116,14 +150,17 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
     } catch {
       setRows((r) => [
         ...r,
-        {
-          kind: "error",
-          text: "Network hiccup — I couldn't reach the ledger. Try again.",
-        },
+        { kind: "notice", text: "Network hiccup — I couldn't reach the ledger.", retryText: text },
       ]);
     } finally {
       setBusy(false);
     }
+  }
+
+  async function send() {
+    const text = draft.trim();
+    if (!text) return;
+    await sendText(text);
   }
 
   function handleConfirmed(id: string) {
@@ -153,8 +190,8 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
   }
 
   return (
-    <section aria-label="Assistant inbox" className="flex h-full min-h-[60vh] flex-col">
-      <div className="mb-2 flex items-center justify-between gap-2">
+    <section aria-label="Assistant inbox" className="flex h-full min-h-0 flex-col">
+      <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Sparkles className="h-3.5 w-3.5 text-copper" aria-hidden="true" />
           <span className="label-tech">Conversation thread</span>
@@ -176,14 +213,14 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
       </div>
 
       <div className="surface-instrument relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <ScrollArea className="flex-1">
+        <ScrollArea className="min-h-0 flex-1">
           <div
-            className="px-3 py-4 md:px-4"
+            className={cn("flex min-h-full flex-col px-3 py-4 md:px-4", showSuggestions && "monolith-grid")}
             role="log"
             aria-live="polite"
             aria-label="Conversation"
           >
-            <ul className="mx-auto flex max-w-3xl flex-col gap-4">
+            <ul className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4">
               <AnimatePresence initial={false}>
                 {rows.map((row, i) => (
                   <motion.li
@@ -206,7 +243,12 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
                           )}
                         >
                           <div className="mb-1 flex items-center gap-2 px-1">
-                            <span className={cn("label-tech", row.role === "assistant" && "text-copper")}>
+                            {row.role === "assistant" ? (
+                              <Avatar className="h-5 w-5 border-copper/20">
+                                <AvatarFallback className="bg-copper/10 text-[10px] text-copper-fg">P</AvatarFallback>
+                              </Avatar>
+                            ) : null}
+                            <span className={cn("label-tech", row.role === "assistant" && "text-copper-fg")}>
                               {row.role === "user" ? "You" : "PFOS · Ledger"}
                             </span>
                           </div>
@@ -267,12 +309,27 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
                           </div>
                         </div>
                       </div>
+                    ) : row.kind === "notice" ? (
+                      <div
+                        role="status"
+                        className="mx-auto flex w-full max-w-3xl items-start justify-between gap-3 border border-copper/20 bg-copper/5 px-3 py-2.5 text-[13px] text-ink"
+                      >
+                        <div>
+                          <span className="label-tech mr-2 text-copper-fg">Notice</span>
+                          <span className="text-ink-2">{row.text}</span>
+                        </div>
+                        {row.retryText ? (
+                          <Button type="button" variant="secondary" size="sm" onClick={() => void sendText(row.retryText!)}>
+                            Retry
+                          </Button>
+                        ) : null}
+                      </div>
                     ) : (
                       <div
                         role="alert"
-                        className="mx-auto max-w-3xl border border-dashed border-over/40 bg-over/5 px-3 py-2.5 text-[13px] text-over"
+                        className="mx-auto w-full max-w-3xl border border-dashed border-over/40 bg-over/5 px-3 py-2.5 text-[13px] text-over"
                       >
-                        <span className="label-tech mr-2 text-over">Error</span>
+                        <span className="label-tech mr-2 text-over-fg">Error</span>
                         {row.text}
                       </div>
                     )}
@@ -281,7 +338,7 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
               </AnimatePresence>
 
               {busy && (
-                <li className="mx-auto flex max-w-3xl items-center gap-3 px-1" aria-label="Reading the ledger">
+                <li className="mx-auto flex w-full max-w-3xl items-center gap-3 px-1" aria-label="Reading the ledger">
                   <span className="flex items-center gap-1" aria-hidden="true">
                     <span className="ledger-pulse h-1.5 w-1.5 rounded-full bg-copper" />
                     <span className="ledger-pulse-delay h-1.5 w-1.5 rounded-full bg-copper" />
@@ -289,6 +346,26 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
                   </span>
                   <span className="label-tech">Reading the ledger</span>
                   <span className="text-[12px] text-ink-2">checking tools and context…</span>
+                </li>
+              )}
+
+              {showSuggestions && !busy && (
+                <li className="mx-auto mt-auto w-full max-w-3xl pt-6">
+                  <p className="label-tech mb-2 text-copper">Try a capture</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SUGGESTIONS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className="stamp-settle rounded-[var(--radius-button)] border border-rule bg-card/80 px-3 py-2 text-left font-mono text-[12px] text-ink hover:border-copper/30 hover:bg-surface-2/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => {
+                          void sendText(s);
+                        }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
                 </li>
               )}
               <div ref={bottomRef} />
@@ -309,6 +386,7 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
             </label>
             <textarea
               id="chat-input"
+              ref={inputRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -336,7 +414,7 @@ export function ChatPane({ contextDay }: { contextDay?: string }) {
               </Button>
             </div>
           </div>
-          <p className="mx-auto mt-2 max-w-3xl px-1 font-mono text-[10px] uppercase tracking-wide text-ink-2">
+          <p className="mx-auto mt-2 hidden max-w-3xl px-1 font-mono text-[10px] uppercase tracking-wide text-ink-2 sm:block">
             Draft first · confirm to settle · numbers from ledger tools
           </p>
         </form>

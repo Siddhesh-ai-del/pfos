@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TiffinRing } from "./TiffinRing";
 
 function InstrumentLabel({ n, title }: { n: string; title: string }) {
   return (
@@ -36,16 +37,14 @@ function BudgetInstrument({ b }: { b: FinContext["budgets"][number] }) {
           >
             {b.name}
           </h4>
-          {b.is_discretionary && (
-            <span className="label-tech mt-0.5 block">discretionary</span>
-          )}
+  
         </div>
         <Badge variant={over ? "over" : "confirmed"}>
           {over ? "over" : "within"}
         </Badge>
       </div>
       <p
-        className={`num mt-2 font-display text-[28px] leading-none ${over ? "text-over" : "text-confirmed"}`}
+        className={`num mt-2 font-display text-[28px] leading-none ${over ? "text-over-fg" : "text-confirmed-fg"}`}
       >
         {formatINR(over ? -b.remaining_or_over : b.remaining_or_over)}
         <span className="ml-1.5 align-[3px] font-mono text-[10px] uppercase tracking-wide text-ink-2">
@@ -54,7 +53,7 @@ function BudgetInstrument({ b }: { b: FinContext["budgets"][number] }) {
       </p>
       <div className="mt-3">
         <Progress
-          value={over ? 100 : usedPct}
+          value={over ? 100 : Math.max(usedPct, b.spent > 0 ? 2 : 0)}
           indicatorClassName={over ? "bg-over" : "bg-confirmed"}
           aria-label={`${b.name} budget used`}
         />
@@ -96,7 +95,8 @@ function TiffinInstrument({ s }: { s: FinContext["tiffin_snapshot"] }) {
         </Badge>
       </div>
       <Separator className="my-3" />
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
+      <TiffinRing value={s.consumed} max={s.prepaid_meals} label={`${s.consumed} / ${s.prepaid_meals} meals`} />
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
         <div>
           <dt className="label-tech">Consumed</dt>
           <dd className="num mt-0.5 text-ink">{s.consumed}</dd>
@@ -184,6 +184,34 @@ function GlanceInstrument({ context }: { context: FinContext }) {
   );
 }
 
+function LedgerActivity({ context }: { context: FinContext }) {
+  const txns = context.recent_txns ?? [];
+  return (
+    <section className="surface-instrument p-3" aria-labelledby="activity-inst">
+      <InstrumentLabel n="04" title="Ledger activity" />
+      {txns.length === 0 ? (
+        <p id="activity-inst" className="text-[13px] text-ink-2">No recent confirmed entries.</p>
+      ) : (
+        <ul id="activity-inst" className="divide-y divide-rule">
+          {txns.slice(0, 8).map((t) => (
+            <li key={t.id} className="flex items-center justify-between gap-3 py-2 text-[13px]">
+              <div className="min-w-0">
+                <p className="truncate capitalize text-ink">{t.note || t.category}</p>
+                <p className="num font-mono text-[10px] uppercase tracking-wide text-ink-2">
+                  {t.category} · {dayjs(t.occurred_on).format("MMM D")}
+                </p>
+              </div>
+              <span className="num shrink-0 font-mono text-[12px] text-ink">
+                {formatINR(t.amount_in_minor_paise)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function ContextInstruments({ context }: { context: FinContext }) {
   const budgets = context.budgets.filter((b) => b.budget != null);
   const reduce = useReducedMotion();
@@ -204,10 +232,11 @@ export function ContextInstruments({ context }: { context: FinContext }) {
     <div className="space-y-4">
       {wrap(<GlanceInstrument context={context} />, 0)}
       <Tabs defaultValue="budgets" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="budgets">Budgets</TabsTrigger>
           <TabsTrigger value="tiffin">Tiffin</TabsTrigger>
           <TabsTrigger value="memory">Memory</TabsTrigger>
+          <TabsTrigger value="activity">Log</TabsTrigger>
         </TabsList>
         <TabsContent value="budgets" className="space-y-3">
           <InstrumentLabel n="01" title="Budget instruments" />
@@ -220,6 +249,9 @@ export function ContextInstruments({ context }: { context: FinContext }) {
         </TabsContent>
         <TabsContent value="memory">
           <MemoryInstrument context={context} />
+        </TabsContent>
+        <TabsContent value="activity">
+          <LedgerActivity context={context} />
         </TabsContent>
       </Tabs>
     </div>

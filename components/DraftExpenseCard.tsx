@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import dayjs from "dayjs";
-import { Check, ReceiptText } from "lucide-react";
+import { Check, ReceiptText, MoreHorizontal, Copy, Fingerprint } from "lucide-react";
+import { toast } from "sonner";
 import { formatINR } from "@/lib/demo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 export type TransactionCardVM = {
@@ -64,13 +67,34 @@ export function DraftExpenseCard({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="label-tech text-copper">REC</span>
+          <span className="label-tech text-copper-fg">REC</span>
           <Badge variant={confirmed ? "confirmed" : "estimate"}>
             {confirmed ? "Confirmed" : "Estimated"}
           </Badge>
           <span className="label-tech">Expense</span>
         </div>
-        <span className="num font-mono text-[11px] text-ink-2">{day}</span>
+        <div className="flex items-center gap-1">
+          <span className="num font-mono text-[11px] text-ink-2">{day}</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Audit details"><Fingerprint className="h-3.5 w-3.5" /></Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72">
+              <p className="label-tech mb-2 text-copper-fg">Audit / receipt</p>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[12px]">
+                <dt className="label-tech">ID</dt><dd className="truncate font-mono text-[11px] text-ink-2">{card.id}</dd>
+                <dt className="label-tech">State</dt><dd className="font-mono text-ink">{card.status}</dd>
+                <dt className="label-tech">Amount</dt><dd className="num font-mono text-ink">{formatINR(card.amount_in_minor_paise)}</dd>
+              </dl>
+            </PopoverContent>
+          </Popover>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Card actions"><MoreHorizontal className="h-3.5 w-3.5" /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => { void navigator.clipboard?.writeText(card.id); toast.success("Receipt ID copied"); }}><Copy className="mr-2 h-4 w-4" />Copy receipt ID</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <div className="mt-3 flex items-end justify-between gap-4">

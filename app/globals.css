@@ -13,14 +13,19 @@
   --surface-2: #eae8df;   /* Bone: secondary surfaces / instruments */
   --card: #fbfaf6;        /* elevated instrument surface */
   --ink: #171918;         /* Graphite: primary text */
-  --ink-2: #898b83;       /* Muted Grey: secondary/meta (tuned in context) */
+  --ink-2: #666a63;       /* muted text, AA on paper */
+  --ink-3: #898b83;       /* subtle/decorative only */
   --rule: rgba(23, 25, 24, 0.12); /* hairline rules */
 
-  /* Signature + PFOS semantics */
-  --copper: #b47755;      /* Oxidized Copper: selective emphasis/trace ONLY */
-  --confirmed: #849681;   /* Technical Green: confirmed/healthy/remaining */
-  --over: #a65448;        /* restrained danger: over-budget/cancelled/error */
-  --estimate: #8c8174;    /* provisional instrument tone (draft/estimated) */
+  /* Signature + PFOS semantics (fills) + AA text variants */
+  --copper: #b47755;      /* Oxidized Copper: fills/trace */
+  --copper-fg: #8a5638;   /* copper text, AA on paper */
+  --confirmed: #849681;   /* fills/bars */
+  --confirmed-fg: #5b705d;/* confirmed text, AA on paper */
+  --over: #a65448;        /* restrained danger */
+  --over-fg: #94463b;
+  --estimate: #8c8174;    /* provisional */
+  --estimate-fg: #756a5e;
 
   /* Interaction */
   --ring: var(--copper);
@@ -44,13 +49,18 @@
   --surface-2: #222624;   /* Obsidian */
   --card: #1d201e;
   --ink: #eae8df;         /* Bone */
-  --ink-2: #898b83;       /* Muted Grey */
+  --ink-2: #9a9c94;       /* muted text, AA on dark surfaces */
+  --ink-3: #898b83;       /* subtle */
   --rule: rgba(234, 232, 223, 0.12);
 
   --copper: #c58a68;
+  --copper-fg: #d4a07f;
   --confirmed: #93a790;
+  --confirmed-fg: #a9bcaa;
   --over: #c46a5c;
+  --over-fg: #d68173;
   --estimate: #a79b8b;
+  --estimate-fg: #bfb3a4;
 
   --ring: var(--copper);
   --selection: rgba(197, 138, 104, 0.18);
@@ -61,12 +71,17 @@
   --color-surface-2: var(--surface-2);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
   --color-rule: var(--rule);
   --color-confirmed: var(--confirmed);
+  --color-confirmed-fg: var(--confirmed-fg);
   --color-over: var(--over);
+  --color-over-fg: var(--over-fg);
   --color-estimate: var(--estimate);
+  --color-estimate-fg: var(--estimate-fg);
   --color-card: var(--card);
   --color-copper: var(--copper);
+  --color-copper-fg: var(--copper-fg);
   --color-ring: var(--ring);
 
   --font-display: var(--font-instrument-serif);
@@ -117,6 +132,10 @@ body {
   text-transform: uppercase;
   color: var(--ink-2);
 }
+.label-tech.text-copper { color: var(--copper-fg) !important; }
+.label-tech.text-confirmed { color: var(--confirmed-fg) !important; }
+.label-tech.text-over { color: var(--over-fg) !important; }
+.label-tech.text-estimate { color: var(--estimate-fg) !important; }
 
 /* Instrument surfaces */
 .surface-instrument {
